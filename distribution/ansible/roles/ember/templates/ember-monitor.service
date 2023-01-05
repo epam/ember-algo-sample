@@ -1,0 +1,20 @@
+[Unit]
+Description=Deltix Ember Monitor Service
+After=syslog.target ember.service
+
+[Service]
+Environment="JAVA_OPTS={{ember_monitor_java_opts}}"
+Environment=EMBER_HOME={{ember_home_dir}}
+Environment=EMBER_WORK={{ember_home_dir}}
+User={{ansible_user}}
+Group={{ansible_user}}
+WorkingDirectory={{ember_home_dir}}
+ExecStart={{ember_install_dir}}/bin/ember-monitor
+#Restart=on-failure
+RestartSec=5
+SyslogIdentifier=ember
+
+[Install]
+WantedBy=multi-user.target
+
+

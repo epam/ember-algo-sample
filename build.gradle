@@ -1,0 +1,99 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+apply from: "$rootDir/gradle/deltix.gradle"
+apply from: "$rootDir/gradle/docker-support.gradle"
+
+repositories {
+    mavenCentral()
+    deltixMavenRepository("epm-rtc-public-java")
+}
+
+ext {
+    emberVersion = '1.11.35'
+}
+
+dependencies {
+    // Publication
+    implementation "deltix:deltix-anvil-lang:$emberVersion"
+    implementation "deltix:deltix-ember-api:$emberVersion"
+    implementation "deltix:deltix-ember-algo-api:$emberVersion"
+    implementation "deltix:deltix-ember-message:$emberVersion"
+    implementation "deltix:deltix-ember-codec:$emberVersion"
+    implementation "deltix:deltix-anvil-cluster:$emberVersion"
+    implementation "deltix:deltix-efix-core:$emberVersion"
+
+    // Centralized security master
+    implementation 'deltix:sm-messages:1.4.38'
+    implementation 'deltix:deltix-sm-api:1.4.38'
+
+    // Decimal datatype
+    implementation 'com.epam.deltix:dfp:0.12.5'
+
+    // Logging
+    compile 'deltix:deltix-gflog-api:2.1.12'
+
+    // Order Book API
+    compile 'deltix:deltix-quoteflow:3.7.37'
+    compile 'deltix:rtmath-containers:2.3.21'
+    compile 'deltix:rtmath-containers-decimal:2.3.21'
+
+    // Deltix Collections are used in some TimeBase messages
+    implementation "deltix.qsrv:deltix-commons-collections:5.4.29"
+    implementation "deltix.qsrv:deltix-commons-util:5.4.29"
+    implementation "deltix.qsrv:deltix-commons-lang:5.4.29"
+
+    implementation "deltix.qsrv:deltix-timebase-api-messages:5.4.89"
+
+    // We need this if we want to Run/Debug algo from this project
+    runtimeOnly  "deltix:deltix-ember-app:$emberVersion"
+
+    // @Nullable, etc.
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
+
+    // Unit tests
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation 'org.mockito:mockito-core:2.6.3'
+    testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
+    testImplementation "deltix:deltix-ember-app:$emberVersion"
+    testImplementation "deltix:deltix-ember-message-bus-client:$emberVersion"
+}
+
+
+// ZIP with sample algorithms to share with clients (result file can be found under build/distributions/*.zip)
+task makeZIP(type: Zip) {
+    archiveBaseName = 'deltix-aglo-sample'
+
+    from('.') {
+        include '**/*'
+        exclude '.git/'
+        exclude '.gradle/'
+        exclude '.idea/libraries/'
+        exclude '.idea/vcs.xml'
+        exclude 'build/'
+        exclude 'out/'
+    }
+}
+
+// Docker support
+
+ext {
+    dockerImageName = 'ember/ember-with-custom-algo'
+}
+
+ext.dockerFileReplaceTokens = [
+    emberDockerImageVersion: emberVersion
+]
+
+// Use :dockerBuildImage to make a docker image
+task prepareFilesForDocker(type: Copy) {
+    group 'docker'
+    dependsOn ':marketfactory:jar'
+
+    def outputDir = file("${buildDir}/docker/custom")
+
+    from jar
+    into outputDir
+
+}

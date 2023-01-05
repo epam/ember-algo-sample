@@ -1,0 +1,19 @@
+[Unit]
+Description=Deltix Ember Service
+After=syslog.target timebase.service
+
+[Service]
+Environment="JAVA_OPTS={{ember_java_opts}}"
+Environment=EMBER_HOME={{ember_home_dir}}
+Environment=EMBER_WORK={{ember_home_dir}}
+User={{ansible_user}}
+Group={{ansible_user}}
+WorkingDirectory={{ember_home_dir}}
+ExecStart={{ember_install_dir}}/bin/ember
+#Restart=on-failure
+RestartSec=5
+SyslogIdentifier=ember
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<AutomatedInstallation langpack="eng">
+    <deltix.izpack.panels.properties.InitPanel id="welcome"/>
+    <deltix.izpack.panels.license.HTMLLicencePanel id="license"/>
+    <deltix.izpack.panels.target.CheckedTargetPanel id="install_dir">
+        <installpath>{{deltix_root_dir}}</installpath>
+    </deltix.izpack.panels.target.CheckedTargetPanel>
+    <deltix.izpack.panels.license.CheckLicensePanel id="serialPanel">
+        <entry key="SerialProperties.serial" value="{{deltix_serial_number}}"/>
+        <entry key="SerialProperties.useProxy" value="false"/>
+    </deltix.izpack.panels.license.CheckLicensePanel>
+    <com.izforge.izpack.panels.userinput.UserInputPanel id="installationNamePanel">
+        <entry key="InstallationNameProperties.instName" value="5.2"/>
+    </com.izforge.izpack.panels.userinput.UserInputPanel>
+    <deltix.izpack.panels.properties.StorePropertiesPanel id="storeProperties"/>
+    <com.izforge.izpack.panels.packs.PacksPanel id="packsSelection">
+        <pack index="0" name="QuantServer" selected="true"/>
+        <pack index="1" name="QuantOffice" selected="false"/>
+    </com.izforge.izpack.panels.packs.PacksPanel>
+    <com.izforge.izpack.panels.install.InstallPanel id="install"/>
+    <deltix.izpack.panels.shortcuts.ShortcutPanel id="shortcuts">
+        <createMenuShortcuts>false</createMenuShortcuts>
+        <programGroup>QuantServer 5.2</programGroup>
+        <createDesktopShortcuts>false</createDesktopShortcuts>
+        <createStartupShortcuts>false</createStartupShortcuts>
+        <shortcutType>all</shortcutType>
+    </deltix.izpack.panels.shortcuts.ShortcutPanel>
+    <deltix.izpack.panels.finish.FinishPanel id="finish"/>
+</AutomatedInstallation>

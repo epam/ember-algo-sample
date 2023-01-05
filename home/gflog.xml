@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+
+    <appender name="console" factory="deltix.gflog.appender.ConsoleAppenderFactory" wrap="true">
+        <layout template="%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t]: %m%n" zoneId="UTC"/>
+    </appender>
+
+    <appender name="file" factory="deltix.gflog.appender.DailyRollingFileAppenderFactory"
+              file="${ember.work}/logs/${app.name}.log" zoneId="UTC" fileSuffixTemplate="_yyyy-MM-dd-HH-mm-ss"
+              maxFiles="10" maxFileSize="200MB">
+        <layout template="%d{yyyy-MM-dd HH:mm:ss.SSS} %p [%t]: %m%n" zoneId="UTC"/>
+    </appender>
+
+
+    <appender name="safeAppender" factory="deltix.gflog.appender.SafeAppenderFactory">
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </appender>
+
+    <logger>
+        <appender-ref ref="safeAppender"/>
+    </logger>
+
+    <logger name="ember.algorithm.XOR" level="TRACE">
+        <appender-ref ref="safeAppender"/>
+    </logger>
+
+
+    <service overflowStrategy="DISCARD"/>
+
+</config>

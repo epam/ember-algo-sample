@@ -1,0 +1,89 @@
+---
+- name: Create data connectors directory
+  become:      yes
+  file:
+      path:      "{{ deltix_home }}/custom/{{ item | lower }}.data/"
+      state:     directory
+      owner:     "{{ ansible_user }}"
+      group:     "{{ ansible_user }}"
+      recurse:   yes
+  with_items:   "{{ enabledExchanges.split(',') }}"
+
+- name: Download data connectors for each exchange
+  become:      yes
+  unarchive:
+      src:        "{{ plugins_repo_url }}/{{ plugin_names[item | lower] }}.data/{{ plugin_versions[item | lower] }}/{{ plugin_names[item | lower] }}.data.zip"
+      dest:       "{{ deltix_home }}/custom/{{ item | lower }}.data/"
+      remote_src: yes
+      owner:      "{{ ansible_user_id }}"
+      group:      "{{ ansible_user_id }}"
+      mode:       u=rw,g=rw,o=rw
+  with_items:   "{{ enabledExchanges.split(',') }}"
+
+
+# Auto-created now
+#- name: Create directories for aggregated streams
+#  become:      yes
+#  file:
+#    path:      "{{ quantserver_home }}/tickdb/__{{ item | lower }}_"
+#    state:     directory
+#    owner:     "{{ ansible_user }}"
+#    group:     "{{ ansible_user }}"
+#    recurse:   yes
+#  with_items:  "{{ enabledExchanges.split(',') }}"
+#
+#- name: Copy data schema for aggregated streams
+#  become:       yes
+#  template:
+#    src:      "streams/__{{ item | lower }}_.uhfq.xml"
+#    dest:     "{{ quantserver_home }}/tickdb/__{{ item | lower }}_/__{{ item | lower }}_.uhfq.xml"
+#    owner:    "{{ ansible_user }}"
+#    group:    "{{ ansible_user }}"
+#    mode:     u=rw,g=r,o=r
+#  with_items:  "{{ enabledExchanges.split(',') }}"
+
+
+- name: Create aggregator config directory
+  become:      yes
+  file:
+    path:      "{{ quantserver_home }}/config/aggregator"
+    state:     directory
+    owner:     "{{ ansible_user }}"
+    group:     "{{ ansible_user }}"
+    recurse:   yes
+
+- name: Copy aggregator process config files
+  become:       yes
+  template:
+    src:      "connectors/__{{ item | lower }}_.xml"
+    dest:     "{{ quantserver_home }}/config/aggregator/__{{ item | lower }}_.xml"
+    owner:    "{{ ansible_user }}"
+    group:    "{{ ansible_user }}"
+    mode:     u=rw,g=r,o=r
+  with_items:  "{{ enabledExchanges.split(',') }}"
+
+
+- name: Generate data retention policy (purge process)
+  become:       yes
+  template:
+    src:      "purge-process.xml"
+    dest:     "{{ quantserver_home }}/config/aggregator/__purge__46___{{ item | lower }}_.xml"
+    owner:    "{{ ansible_user }}"
+    group:    "{{ ansible_user }}"
+    mode:     u=rw,g=r,o=r
+  with_items:  "{{ enabledExchanges.split(',') }}"
+
+- name: Generate aggregator.service script
+  become:         yes
+  template:
+      src:          aggregator.service
+      dest:         "/etc/systemd/system/aggregator.service"
+      mode:         u=rw,g=r,o=r
+
+- name: Restart Aggregator Service
+  become:         yes
+  systemd:
+      name:         aggregator.service
+      enabled:      yes
+      state:        restarted
+      daemon_reload: yes

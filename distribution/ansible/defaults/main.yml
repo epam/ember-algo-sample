@@ -1,0 +1,107 @@
+########################################################################################################################
+# QuantServer
+########################################################################################################################
+quantserver_version:          5.3.23
+quantserver_installer:        "deltix-linux-installer-offline-{{ quantserver_version }}.jar"
+quantserver_installer_url:    "https://s3.eu-west-3.amazonaws.com/deltix-installers/5.3/{{ quantserver_installer }}"
+
+########################################################################################################################
+# Destination directories and ports
+########################################################################################################################
+qshome_name: CentralizedSecurityMaster52
+qshome_url: "http://gw.deltixlab.com/install/5.2/documentation/{{ qshome_name }}.zip"
+
+deltix_root_dir:              "/deltix"
+deltix_home:                  "/deltix/QuantServer"
+quantserver_home:             "/deltix/QuantServerHome"
+
+ember_install_dir:            "/deltix/ember"
+ember_home_dir:               "/deltix/emberhome"
+stunnel_dir:                  "/var/run/stunnel"
+
+deltix_serial_number:         "SERIAL"
+timebase_port:                8011
+aggregator_port:              1299
+timebase_twg_port:            8099
+timebase_oauth_port:          8100
+ember_drop_copy_port:         6001
+
+plugins_repo_url:             http://gw.deltixlab.com/install/5.2/plugins
+plugin_names:
+  alphapoint: alphapoint
+  binance:    binance
+  bitfinex:   bitfinex
+  bitstamp:   bitstamp
+  bittrex:    bittrex
+  deltix-es:  deltix-es
+  coinbase:   gdax #!
+  gemini:     gemini
+  itbit:      itbit
+  jump:       jump
+  kraken:     kraken
+  lmax:       lmax
+  poloniex:   poloniex
+  primexm:    primexm
+  quoine:     quoine
+  tradair:    tradair
+
+plugin_versions:
+    alphapoint: 71
+    binance:  79
+    bitfinex: 80
+    bitstamp: 77
+    bittrex:  73
+    deltix-es:  80
+    coinbase: 76 #
+    gemini:   73
+    itbit:    72
+    jump:     74
+    kraken:   91
+    lmax:     80
+    poloniex: 72
+    primexm:  22
+    quoine:   70
+    tradair:  71
+
+
+data_purge_cron_schedule:     "* 7 * * *"
+data_purge_depth:             1D
+
+deltix_repo_url:              packages.deltixhub.com
+ember_version:                1.4.4
+ember_distribution_zip:       "https://{{ deltix_repo_url }}/endpoints/Deltix.Assets/content/QuantServer/Trade/Ember/{{ember_version}}/deltix-ember-{{ember_version}}.zip"
+
+project_version:              "{{ lookup('ini', 'version type=properties file=../../../gradle.properties') }}"
+
+ember_supported_symbols:      "ETH/USD,BCH/USD,BCH/BTC,ETH/BTC,LTC/USD,LTC/BTC,XRP/USD,BTC/USD"
+enabledExchanges:             "BINANCE,BITFINEX,BITSTAMP,BITTREX,COINBASE,GEMINI,KRAKEN,POLONIEX"
+
+
+
+timebase_java_opts: -Xmx2G
+                    -Xms2G
+                    -verbose:gc
+
+agg_java_opts:      -Xmx1G
+                    -Xms1G
+                    -verbose:gc
+
+ember_java_opts:  -Xmx2G
+                  -Xms2G
+                  -verbose:gc
+                  -XX:-TieredCompilation
+                  -XX:+UnlockDiagnosticVMOptions
+                  -XX:+UseSerialGC
+                  -XX:GuaranteedSafepointInterval=0
+                  -XX:+PrintGCApplicationStoppedTime
+                  -XX:+PrintSafepointStatistics
+                  -XX:PrintSafepointStatisticsCount=1
+                  -Ddeltix.disable.bounds.check=false
+
+ember_monitor_java_opts:  -Xmx2G
+                          -Xms2G
+
+
+cpu_affinity_config:
+
+

@@ -1,0 +1,9 @@
+---
+- name: Copy JAR file with our custom algorithm
+  become:       yes
+  copy:
+    src:       "../../../build/libs/algorithm-sample-{{project_version}}.jar"
+    dest:      "{{ ember_install_dir }}/lib/custom"
+    owner:      "{{ ansible_user_id }}"
+    group:      "{{ ansible_user_id }}"
+    mode:      preserve

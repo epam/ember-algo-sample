@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+
+    <appender name="console" factory="deltix.gflog.appender.ConsoleAppenderFactory"/>
+    <appender name="file" factory="deltix.gflog.appender.DailyRollingFileAppenderFactory"
+              file="{{ ember_home_dir }}/logs/${app.name}.log"/>
+
+    <logger level="INFO">
+        <appender-ref ref="file"/>
+    </logger>
+
+    <logger name="deltix.qsrv.hf.tickdb.comm.client.DXClientAeronContext" level="TRACE">
+        <appender-ref ref="file"/>
+    </logger>
+
+    <service overflowStrategy="DISCARD"/>
+
+</config>

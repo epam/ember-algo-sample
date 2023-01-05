@@ -1,0 +1,69 @@
+---
+- name: Clean EMBER_HOME if exists
+  become:      yes
+  file:
+    state:     absent
+    path:      "{{ ember_home_dir }}"
+
+
+- name: Re-create the EMBER_HOME dir
+  become:      yes
+  file:
+    path:      "{{ ember_home_dir }}"
+    state:     directory
+    mode:      0755
+    owner:     "{{ ansible_user }}"
+    group:     "{{ ansible_user }}"
+    recurse:   yes
+
+- name: Generate ember.conf from template
+  template:
+    src:      ember.conf
+    dest:     "{{ ember_home_dir }}/ember.conf"
+    mode:     0555
+
+- name: Create Ember log directory
+  file:
+    path:      "{{ ember_home_dir }}/logs"
+    state:     directory
+
+- name: Generate gflog.xml from template
+  template:
+    src:      gflog.xml
+    dest:     "{{ ember_home_dir }}/gflog.xml"
+    owner:    "{{ ansible_user_id }}"
+    group:    "{{ ansible_user_id }}"
+    mode:     0555
+
+- name: Generate script for ember service
+  become:         yes
+  template:
+    src:          ember.service
+    dest:         "/etc/systemd/system/ember.service"
+    mode:         u=rw,g=r,o=r
+
+- name: Restart ember service
+  become:         yes
+  systemd:
+    name:         ember.service
+    enabled:      yes
+    state:        restarted
+    daemon_reload: yes
+
+
+- name: Generate script for ember-monitor service
+  become:         yes
+  template:
+    src:          ember-monitor.service
+    dest:         "/etc/systemd/system/ember-monitor.service"
+    mode:         u=rw,g=r,o=r
+
+- name: Restart ember-monitor service
+  become:         yes
+  systemd:
+    name:         ember-monitor.service
+    enabled:      yes
+    state:        restarted
+    daemon_reload: yes
+
+

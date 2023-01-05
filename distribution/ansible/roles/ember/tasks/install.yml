@@ -1,0 +1,28 @@
+---
+- name: Create the Ember installation dir
+  file:
+    path:      "{{ ember_install_dir }}"
+    state:     directory
+    owner:     "{{ ansible_user_id }}"
+    group:     "{{ ansible_user_id }}"
+    recurse:   yes
+  become:      yes
+
+
+- name: Download Ember distribution
+  get_url:
+      url:        "{{ ember_distribution_zip }}"
+      force_basic_auth: yes
+      url_username: "{{ deltixhub_maven_username }}" # Developer
+      url_password: "{{ deltixhub_maven_password }}" # ...
+      dest:       "~/deltix-ember-{{ember_version}}.zip"
+      owner:      "{{ ansible_user_id }}"
+      group:      "{{ ansible_user_id }}"
+      mode:       u=rw,g=rw,o=rw
+
+
+- name: Extract Ember distribution ZIP
+  unarchive:
+    src:          "~/deltix-ember-{{ember_version}}.zip"
+    remote_src:   yes
+    dest:         "{{ ember_install_dir }}"

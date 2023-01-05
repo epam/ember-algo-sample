@@ -1,0 +1,84 @@
+---
+- name: Download QuantServer setup
+  get_url:
+    url:          "{{ quantserver_installer_url }}"
+    dest:         "/home/{{ ansible_user }}/{{ quantserver_installer }}"
+    force:        no
+    mode:         u=rw,g=r,o=r
+
+- name: Generate automated setup script
+  template:
+    src:          auto-install.xml
+    dest:         "/home/{{ ansible_user }}/auto-install.xml"
+    mode:         u=rw,g=r,o=r
+
+- name: Run QuantServer setup
+  become:         yes
+  shell:          java -jar {{ quantserver_installer }} auto-install.xml
+  args:
+    chdir:      "/home/{{ ansible_user }}/"
+    creates:     "{{ deltix_home }}/{{ quantserver_version }}.version"
+
+- name:           Create QuantServer version file
+  become:         yes
+  command:        "touch {{ deltix_home }}/{{ quantserver_version }}.version"
+  args:
+    creates:    "{{ deltix_home }}/{{ quantserver_version }}.version"
+
+- name: Download sample QuantServerHome
+  become:         yes
+  get_url:
+    url:          "{{ qshome_url }}"
+    dest:         "/home/{{ ansible_user }}/{{ qshome_name }}.zip"
+    force:        no
+    owner:        "{{ ansible_user }}"
+    mode:         u=rw,g=r,o=r
+
+- name: Create the QuantServerHome dir
+  become:         yes
+  file:
+    path:         "{{ quantserver_home }}"
+    state:        directory
+    owner:        "{{ ansible_user }}"
+
+- name: Extract QuantServerHome
+  unarchive:
+    src:          "/home/{{ ansible_user }}/{{ qshome_name }}.zip"
+    dest:         "{{ quantserver_home }}"
+    remote_src:   yes
+    creates:      "{{ quantserver_home }}/tickdb"
+
+- name: Generate gflog.xml
+  become:         yes
+  template:
+      src:          gflog.xml
+      dest:         "{{ quantserver_home }}/config/gflog.xml"
+      mode:         u=rw,g=r,o=r
+
+
+#- name: Pre-create Topic
+#  copy:
+#    src:           "files/l2feed.topic.xml"
+#    dest:          "{{ quantserver_home_dir }}/topics/"
+#    owner:         "{{ ansible_user_id }}"
+#    group:         "{{ ansible_user_id }}"
+#    mode:          preserve
+
+
+- name: Generate service script
+  become:         yes
+  template:
+    src:          timebase.service
+    dest:         "/etc/systemd/system/timebase.service"
+    mode:         u=rw,g=r,o=r
+
+- name: Restart Timebase Service
+  become:         yes
+  systemd:
+    name:         timebase.service
+    enabled:      yes
+    state:        restarted
+    daemon_reload: yes
+
+- name: Wait for TimeBase to come up
+  wait_for: port={{timebase_port}} delay=5 timeout=60

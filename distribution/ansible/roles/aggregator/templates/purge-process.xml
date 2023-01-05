@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<purge xmlns="http://xml.deltixlab.com/internal/quantserver/2.0" xmlns:ns2="http://xml.deltixlab.com/internal/quantserver/3.0">
+    <key>PURGE.{{ item }}</key>
+    <schedule>{{ data_purge_cron_schedule }}</schedule>
+    <activateOnStartup>true</activateOnStartup>
+    <targetStream>{{ item }}</targetStream>
+    <keepDepth>{{ data_purge_depth }}</keepDepth>
+</purge>

@@ -1,0 +1,10 @@
+---
+- hosts: all
+  gather_facts: true
+  pre_tasks:
+    - include_vars: ../defaults/main.yml
+  roles:
+    - sysinternals
+    - timebase
+    - aggregator
+    - ember

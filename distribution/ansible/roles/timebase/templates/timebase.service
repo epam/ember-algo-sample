@@ -1,0 +1,16 @@
+[Unit]
+Description=Deltix Timebase Service on port {{timebase_port}}
+After=syslog.target
+
+[Service]
+Environment=DELTIX_HOME={{deltix_home}}
+Restart=always
+User={{ansible_user}}
+Group={{ansible_user}}
+WorkingDirectory={{quantserver_home}}
+ExecStart=/usr/bin/java {{ timebase_java_opts }} -jar {{ deltix_home }}/bin/runjava.jar deltix.qsrv.comm.cat.TomcatCmd -tb -home {{ quantserver_home }}
+SyslogIdentifier=timebase
+
+[Install]
+WantedBy=multi-user.target
+

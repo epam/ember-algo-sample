@@ -1,0 +1,37 @@
+// Developers: please put credentials into ~/.gradle/gradle.properties
+// CI Build robots get these credentials from CI Environment Variables
+def repoUser = findProperty('NEXUS_USER') ?: System.getenv('NEXUS_USER') ?:"FakeNexusUser"
+def repoPassword = findProperty('NEXUS_PASS') ?: System.getenv('NEXUS_PASS') ?: "FakeNexusPass"
+def deltixRepository = "https://nexus.deltixhub.com/repository/"
+//def deltixRepository = "https://registry.deltixhub.com/repository/"
+
+gradle.beforeProject {
+    if (repoUser == null)
+        ant.fail('ERROR: Credentials to access Deltix maven repository are NOT defined!')
+}
+
+repositories.ext.deltixMavenRepository = { name ->
+    repositories.maven {
+        credentials {
+            username repoUser
+            password repoPassword
+        }
+        authentication {
+            digest(BasicAuthentication)
+        }
+        url deltixRepository + name + "/"
+    }
+}
+
+project.buildscript.repositories.ext.deltixMavenRepository = { name ->
+    project.buildscript.repositories.maven {
+        credentials {
+            username repoUser
+            password repoPassword
+        }
+        authentication {
+            digest(BasicAuthentication)
+        }
+        url deltixRepository + name + "/"
+    }
+}
