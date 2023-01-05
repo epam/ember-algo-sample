@@ -1,6 +1,6 @@
 ## Sample algorithm
 
-This project illustrates how to build, test, debug, and deploy algorithms for Deltix Execution Server.
+This project illustrates how to build, test, debug, and deploy algorithms for Deltix Execution Server (Ember).
 This archive contains IntelliJ/IDEA project and Gradle build files for ICEBERG sample algorithm.
 
 See Algorithm Developer's Guide for more information.
@@ -9,7 +9,7 @@ See Algorithm Developer's Guide for more information.
 
 This project references Ember Java API libraries located in Deltix private maven repository.
 
-Please make sure that you define environment variables `NEXUS_USER` and `NEXUS_PASS` to Deltix repository credentials provided to you.
+> Please make sure that you define environment variables `NEXUS_USER` and `NEXUS_PASS` to Deltix repository credentials provided to you.
 
 ### Test
 
@@ -42,8 +42,8 @@ algorithms {
 
 Entire Gradle project uses java-library plugin.
 
-```
-gradlew build 
+```sh
+./gradlew build 
 ```
 
 The build produces `build/lib/algorithm-sample-*.jar`. To deploy your algorithm to actual server copy this JAR file under `lib/custom/` directory of your ES installation.
