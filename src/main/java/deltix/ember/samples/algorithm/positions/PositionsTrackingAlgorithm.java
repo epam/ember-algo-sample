@@ -32,6 +32,6 @@ public class PositionsTrackingAlgorithm extends SimpleAlgorithm {
 
     @Override
     public void onPositionReport(PositionReport response) {
-        LOGGER.info(response.toString());
+        LOGGER.info("Got position report %s").with(response);
     }
 }
