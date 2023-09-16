@@ -48,7 +48,7 @@ public class Test_IcebergAlgorithmMock extends SingleLegExecutionAlgoUnitTest<Ic
         MutableCurrencyUpdate currency = new MutableCurrencyUpdate();
         currency.setSymbol(symbol);
         currency.setInstrumentType(InstrumentType.FX);
-        currency.setTick(Decimal64Utils.fromDouble(tick));
+        currency.setPriceIncrement(Decimal64Utils.fromDouble(tick));
 
         ObjectArrayList<InstrumentAttribute> attributes = new ObjectArrayList<InstrumentAttribute>();
         MutableInstrumentAttribute instrumentAttribute = new MutableInstrumentAttribute();

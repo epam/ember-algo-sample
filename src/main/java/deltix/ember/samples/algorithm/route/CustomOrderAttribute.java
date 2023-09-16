@@ -1,7 +1,7 @@
 package deltix.ember.samples.algorithm.route;
 
 import deltix.ember.message.trade.CustomAttribute;
-import deltix.gflog.AppendableEntry;
+import com.epam.deltix.gflog.api.AppendableEntry;
 
 public class CustomOrderAttribute implements CustomAttribute {
     private int key;

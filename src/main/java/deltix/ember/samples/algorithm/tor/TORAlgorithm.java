@@ -10,7 +10,7 @@ import deltix.ember.service.algorithm.md.InstrumentDataFactory;
 import deltix.ember.service.algorithm.slicer.SlicingAlgorithm;
 import deltix.ember.service.data.OrderState;
 import deltix.ember.service.oms.cache.OrdersCacheSettings;
-import deltix.gflog.LogLevel;
+import com.epam.deltix.gflog.api.LogLevel;
 
 import java.util.function.Function;
 

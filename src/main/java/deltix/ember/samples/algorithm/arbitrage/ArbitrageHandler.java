@@ -10,11 +10,14 @@ import deltix.ember.message.trade.OrderCancelEvent;
 import deltix.ember.message.trade.OrderRejectEvent;
 import deltix.ember.message.trade.OrderTradeReportEvent;
 import deltix.ember.message.trade.Side;
+import deltix.ember.service.algorithm.util.OrderBookHelper;
 import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
 import deltix.ember.service.algorithm.v2.order.OutboundOrder;
-import deltix.gflog.Log;
+import com.epam.deltix.gflog.api.Log;
+import deltix.orderbook.core.api.OrderBookQuote;
 import deltix.qsrv.hf.pub.InstrumentMessage;
-import deltix.quoteflow.orderbook.interfaces.OrderBookQuote;
+
+import deltix.timebase.api.messages.QuoteSide;
 import deltix.timebase.api.messages.universal.BaseEntryInfo;
 import deltix.timebase.api.messages.universal.PackageHeaderInfo;
 import deltix.timebase.api.messages.universal.TradeEntryInfo;
@@ -88,7 +91,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
         if (isMonitoring()) {
             // check if we need to enter position
             // find the best ask on entry exchange order book
-            OrderBookQuote bestAsk = orderBook.getExchange(entryExchangeId).getBestAskQuote();
+            OrderBookQuote bestAsk = OrderBookHelper.getBestQuote(orderBook, entryExchangeId, QuoteSide.ASK);
             // if the last trade price on exit exchange is grater than the ask quote and trade is more recent
             if (bestAsk != null && Decimal64Utils.isGreater(lastTradePrice, bestAsk.getPrice()) && lastTradeTime > bestAsk.getLastUpdateTime()) {
                 // try to enter position at best ask quote price
@@ -98,7 +101,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
 
         } else if (isExiting() && !exitOrder.isFinal() && !exitOrder.isReplacePending() && algorithm.getTime() >= lastReplaceTime + MIN_REPLACE_INTERVAL) {
             // chase the market if it moved away
-            OrderBookQuote bestAsk = orderBook.getExchange(exitExchangeId).getBestAskQuote();
+            OrderBookQuote bestAsk = OrderBookHelper.getBestQuote(orderBook, exitExchangeId, QuoteSide.ASK);
             if (bestAsk != null && Decimal64Utils.isLess(bestAsk.getPrice(), exitOrder.getWorkingOrder().getLimitPrice())) {
                 @Decimal long limitPrice = bestAsk.getPrice();
                 algorithm.replaceExitOrder(exitOrder, limitPrice);
@@ -124,7 +127,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
             }
 
             // if order is entry order that was filled issue passive order at best ask on exit exchange to exit position
-            OrderBookQuote bestAsk = orderBook.getExchange(exitExchangeId).getBestAskQuote();
+            OrderBookQuote bestAsk = OrderBookHelper.getBestQuote(orderBook, exitExchangeId, QuoteSide.ASK);
             if (bestAsk == null) {
                 logger.warn("No %s market on exchange %s").with(getSymbol()).withAlphanumeric(exitExchangeId);
             }
@@ -151,7 +154,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
             // if partially filled exit position for partial quantity
             if (Decimal64Utils.isPositive(order.getTotalExecutedQuantity())) {
                 // find best ask on taker order book
-                OrderBookQuote bestAsk = orderBook.getExchange(exitExchangeId).getBestAskQuote();
+                OrderBookQuote bestAsk = OrderBookHelper.getBestQuote(orderBook, exitExchangeId, QuoteSide.ASK);
                 if (bestAsk == null) {
                     logger.warn("No %s market on exchange %s").with(getSymbol()).withAlphanumeric(exitExchangeId);
                 }

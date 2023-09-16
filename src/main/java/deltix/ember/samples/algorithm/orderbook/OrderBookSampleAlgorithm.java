@@ -23,7 +23,7 @@ import deltix.quoteflow.orderbook.interfaces.OrderBookList;
 import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.MarketMessageInfo;
 import deltix.timebase.api.messages.QuoteSide;
-import rtmath.containers.generated.DecimalLongDecimalLongPair;
+import deltix.containers.generated.DecimalLongDecimalLongPair;
 
 /**
  * Sample that demonstrates how to use Deltix QuoteFlow Order Book in algorithms

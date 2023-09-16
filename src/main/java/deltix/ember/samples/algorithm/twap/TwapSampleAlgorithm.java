@@ -14,7 +14,7 @@ import deltix.ember.service.algorithm.AlgorithmContext;
 import deltix.ember.service.algorithm.ChildOrder;
 import deltix.ember.service.algorithm.SimplifiedAbstractAlgorithm;
 import deltix.ember.service.oms.cache.OrdersCacheSettings;
-import deltix.gflog.LogLevel;
+import com.epam.deltix.gflog.api.LogLevel;
 
 import static deltix.anvil.util.timer.TimerCallback.DO_NOT_RESCHEDULE;
 

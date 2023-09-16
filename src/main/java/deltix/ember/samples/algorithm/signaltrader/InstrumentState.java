@@ -5,8 +5,8 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.ember.message.smd.InstrumentType;
 import deltix.ember.message.trade.Side;
 import deltix.ember.service.algorithm.v2.AbstractL1TradingAlgorithm;
-import deltix.gflog.AppendableEntry;
-import deltix.gflog.Loggable;
+import com.epam.deltix.gflog.api.AppendableEntry;
+import com.epam.deltix.gflog.api.Loggable;
 import deltix.util.finmath.SMAV;
 
 /** Instrument state such as  position size, cost and P&L */

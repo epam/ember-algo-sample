@@ -78,7 +78,7 @@ class InstrumentInfo extends AbstractInstrumentData {
     private long minOrderSize = Decimal64Utils.ZERO;
 
     @Decimal
-    private long orderSizePrecision = Decimal64Utils.NULL;
+    private long orderSizeIncrement = Decimal64Utils.NULL;
 
     public InstrumentInfo(CharSequence symbol, InstrumentType instrumentType) {
         super(symbol, instrumentType);
@@ -93,7 +93,7 @@ class InstrumentInfo extends AbstractInstrumentData {
         if (instrument instanceof CryptoCurrency) {
             CryptoCurrency cryptoCurrency = (CryptoCurrency) instrument;
             minOrderSize = cryptoCurrency.getMinOrderSize();
-            orderSizePrecision = cryptoCurrency.getOrderSizePrecision();
+            orderSizeIncrement = cryptoCurrency.getSizeIncrement();
         }
     }
 }
