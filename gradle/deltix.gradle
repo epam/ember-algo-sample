@@ -3,7 +3,6 @@
 def repoUser = findProperty('NEXUS_USER') ?: System.getenv('NEXUS_USER') ?:"FakeNexusUser"
 def repoPassword = findProperty('NEXUS_PASS') ?: System.getenv('NEXUS_PASS') ?: "FakeNexusPass"
 def deltixRepository = "https://nexus.deltixhub.com/repository/"
-//def deltixRepository = "https://registry.deltixhub.com/repository/"
 
 gradle.beforeProject {
     if (repoUser == null)
