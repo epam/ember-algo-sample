@@ -14,9 +14,13 @@ import deltix.ember.service.algorithm.util.OrderBookHelper;
 import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
 import deltix.ember.service.algorithm.v2.order.OutboundOrder;
 import com.epam.deltix.gflog.api.Log;
+import deltix.orderbook.core.api.OrderBook;
+import deltix.orderbook.core.api.OrderBookFactory;
 import deltix.orderbook.core.api.OrderBookQuote;
+import deltix.orderbook.core.options.*;
 import deltix.qsrv.hf.pub.InstrumentMessage;
 
+import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.QuoteSide;
 import deltix.timebase.api.messages.universal.BaseEntryInfo;
 import deltix.timebase.api.messages.universal.PackageHeaderInfo;
@@ -63,6 +67,25 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
         exitExchangeId = settings.getExitExchange();
     }
 
+
+    @Override
+    protected OrderBook<OrderBookQuote> createOrderBook(String symbol) {
+        final OrderBookOptions COMMON_ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
+                .quoteLevels(DataModelType.LEVEL_TWO)
+                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
+                .disconnectMode(DisconnectMode.CLEAR_EXCHANGE)
+                .shouldStoreQuoteTimestamps(true)
+                .build();
+
+        final OrderBookOptions orderBookOptions = new OrderBookOptionsBuilder()
+                .parent(COMMON_ORDER_BOOK_OPTIONS)
+                .orderBookType(OrderBookType.CONSOLIDATED)
+                .symbol(symbol)
+                .build();
+
+        return OrderBookFactory.create(orderBookOptions);
+    }
+
     /** Handles changes on the market */
     @Override
     public void onMarketMessage(InstrumentMessage message) {
@@ -93,7 +116,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
             // find the best ask on entry exchange order book
             OrderBookQuote bestAsk = OrderBookHelper.getBestQuote(orderBook, entryExchangeId, QuoteSide.ASK);
             // if the last trade price on exit exchange is grater than the ask quote and trade is more recent
-            if (bestAsk != null && Decimal64Utils.isGreater(lastTradePrice, bestAsk.getPrice()) && lastTradeTime > bestAsk.getLastUpdateTime()) {
+            if (bestAsk != null && Decimal64Utils.isGreater(lastTradePrice, bestAsk.getPrice()) && lastTradeTime > bestAsk.getTimestamp()) {
                 // try to enter position at best ask quote price
                 entryOrder = algorithm.submitEntryOrder(getSymbol(), bestAsk.getSize(), bestAsk.getPrice(), entryExchangeId);
                 logger.info("Submitted entry order: %s").with(entryOrder);

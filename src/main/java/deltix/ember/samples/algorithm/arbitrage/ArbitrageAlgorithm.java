@@ -10,10 +10,13 @@ import deltix.ember.message.trade.*;
 import deltix.ember.service.algorithm.AlgorithmContext;
 import deltix.ember.service.algorithm.MarketSubscription;
 import deltix.ember.service.algorithm.md.InstrumentDataFactory;
+import deltix.ember.service.algorithm.util.OrderBookHelper;
 import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
 import deltix.ember.service.algorithm.v2.OutboundOrderProcessorImpl;
 import deltix.ember.service.algorithm.v2.order.OutboundOrder;
 import deltix.ember.service.oms.cache.OrdersCacheSettings;
+import deltix.orderbook.core.api.OrderBook;
+import deltix.orderbook.core.options.OrderBookType;
 
 /**
  * Algorithm subscribes to price streams from two exchanges (for example, BINANCE and OKEX).
