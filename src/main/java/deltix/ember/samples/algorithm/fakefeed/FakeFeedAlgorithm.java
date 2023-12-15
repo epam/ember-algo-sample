@@ -183,7 +183,7 @@ class FakeFeedAlgorithm extends AbstractService implements Algorithm, ServiceWor
 
     @Override
     public int doLast(int workDone) {
-        return timer.execute(context.getClock().time(), EmberConstants.TIMER_TASK_LIMIT);
+        return timer.execute(context.getClock(), EmberConstants.TIMER_TASK_LIMIT);
     }
 
     private int sendNextMessageIfTime() {
