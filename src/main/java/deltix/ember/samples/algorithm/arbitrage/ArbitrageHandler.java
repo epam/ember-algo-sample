@@ -134,7 +134,7 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
         }
     }
 
-    private void updateTrade(long tradeTime, @Decimal long tradePrice) {
+    private void updateTrade(@Timestamp long tradeTime, @Decimal long tradePrice) {
         if (tradeTime >= lastTradeTime) {
             lastTradeTime = tradeTime;
             lastTradePrice = tradePrice;
