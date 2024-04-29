@@ -157,6 +157,20 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
                 }
             }
         }
+
+        @Override
+        public void onOrderNew(OutboundOrder order, OrderNewEvent event) {
+            super.onOrderNew(order, event);
+
+            if (isLeader()) {
+                MarketMakerHandler handler = get(order.getSymbol());
+                if (handler != null) {
+                    handler.onNew(order, event);
+                } else {
+                    LOGGER.warn("New %s for unknown symbol %s").with(order).with(order.getSymbol());
+                }
+            }
+        }
     }
 
     /// Helpers

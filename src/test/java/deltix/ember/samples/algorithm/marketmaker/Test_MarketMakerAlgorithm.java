@@ -172,8 +172,29 @@ public class Test_MarketMakerAlgorithm extends SingleLegExecutionAlgoUnitTest<Ma
         verifyNewOrderRequest("orderId:Child#12", "quantity:100", "limitPrice:7500", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
     }
 
+    // When we receive OrderRejectEvent or unsolicited OrderCancelEvent we retry to send the same order again
+    @Test
+    public void testOrderRetry() {
+        simulateOrderBook(symbol, SOURCE_EXCHANGE,
+                "3 @ 9000",
+                "---------------",
+                "1 @ 7500");
+
+        verifyNewOrderRequest("orderId:Child#1", "quantity:150", "limitPrice:9080", "side:SELL", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+        verifyNewOrderRequest("orderId:Child#2", "quantity:20", "limitPrice:7470", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+        verifyNewOrderRequest("orderId:Child#3", "quantity:30", "limitPrice:7450", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+        verifyNewOrderRequest("orderId:Child#4", "quantity:100", "limitPrice:7400", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+
+        simulateTimeAdvance(Duration.ofMillis(1));
+        simulateOrderRejectEvent("Child#2");
+        verifyNewOrderRequest("orderId:Child#5", "quantity:20", "limitPrice:7470", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+
+
+        simulateTimeAdvance(Duration.ofMillis(1));
+        simulateOrderCancelEvent("Child#4");
+        verifyNewOrderRequest("orderId:Child#6", "quantity:100", "limitPrice:7400", "side:BUY", "destinationId:JUMP", "timeInForce:GOOD_TILL_CANCEL");
+    }
+
     // todo: rate limit tests
-    //  cancel reject behaviour
-    //
 
 }
