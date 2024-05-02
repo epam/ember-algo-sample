@@ -39,6 +39,9 @@ public class MarketMakerSettings {
     private double maxQuoterPositionSize;
     private double maxHedgerPositionSize;
 
+    // Misc
+    private int rateLimit;
+
     public @Alphanumeric long getExchange() {
         return exchange;
     }
@@ -213,5 +216,13 @@ public class MarketMakerSettings {
 
     public void setMaxHedgerPositionSize(double maxHedgerPositionSize) {
         this.maxHedgerPositionSize = maxHedgerPositionSize;
+    }
+
+    public int getRateLimit() {
+        return rateLimit;
+    }
+
+    public void setRateLimit(int rateLimit) {
+        this.rateLimit = rateLimit;
     }
 }

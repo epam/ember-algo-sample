@@ -1,7 +1,6 @@
 package deltix.ember.samples.algorithm.marketmaker;
 
 import com.epam.deltix.dfp.Decimal;
-import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.anvil.message.NodeStatusEvent;
 import deltix.anvil.util.Factory;
 import deltix.anvil.util.annotation.Alphanumeric;

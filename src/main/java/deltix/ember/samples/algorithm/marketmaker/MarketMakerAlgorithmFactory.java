@@ -82,6 +82,9 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
     private double maxQuoterPositionSize; // The upper limit (by absolute value) of the QuoterNetQty of the trading bot.
     private double maxHedgerPositionSize; // The upper limit (by absolute value) of the HedgerNetQty of the trading bot.
 
+    // Misc
+    private int rateLimit; // per second
+
     public MarketMakerAlgorithmFactory() {
         setOrderCacheCapacity(1000);
         setMaxInactiveOrdersCacheSize(1000);
@@ -177,6 +180,10 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
         this.maxHedgerPositionSize = maxHedgerPositionSize;
     }
 
+    public void setRateLimit(int rateLimit) {
+        this.rateLimit = rateLimit;
+    }
+
     @Override
     public MarketMakerAlgorithm create(AlgorithmContext context) {
         MarketMakerSettings settings = new MarketMakerSettings();
@@ -256,6 +263,7 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
 //            throw new IllegalArgumentException("Max Hedger Position Size is required field");
 //        }
         settings.setMaxHedgerPositionSize(maxHedgerPositionSize);
+        settings.setRateLimit(rateLimit);
 
         return new MarketMakerAlgorithm(context, getCacheSettings(), settings);
     }
