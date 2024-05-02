@@ -170,14 +170,12 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         boolean isBuy = order.getSide() == Side.BUY;
         final boolean isHedger = CharSequenceUtil.equals(order.getUserData(), "Hedger");
         @Decimal final long tradeQty = event.getTradeQuantity();
-        if (isHedger)
-            System.out.println(order.isFinal());
+
         if (isBuy) {
             currentPosition = Decimal64Utils.add(currentPosition, tradeQty);
             if (isHedger)
                 openHedgeBuyQty = Decimal64Utils.subtract(openHedgeBuyQty, tradeQty);
             openBuyQty = Decimal64Utils.subtract(openBuyQty, tradeQty);
-
         } else {
             currentPosition = Decimal64Utils.subtract(currentPosition, tradeQty);
             if (isHedger)
@@ -189,24 +187,25 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
             hedgerAction(); // hedging has higher priority
             if (order.isFinal()) {
                 removeFromActive(order);
-                resurrectOrder(order);
+                processOrders(Side.BUY);
+                processOrders(Side.SELL);
             }
         }
-
-        System.out.println(Decimal64Utils.toString(openHedgeBuyQty));
     }
 
     public void onRejected(OutboundOrder order, OrderRejectEvent event) {
         // TODO: logic depends on reject reason
         // now it assumes SAFE REJECT
         removeFromActive(order);
-        resurrectOrder(order);
+        processOrders(Side.BUY);
+        processOrders(Side.SELL);
     }
 
     public void onCanceled(OutboundOrder order, OrderCancelEvent event) {
         // safe cancel
         removeFromActive(order);
-        resurrectOrder(order);
+        processOrders(Side.BUY);
+        processOrders(Side.SELL);
     }
 
     public void onNew(OutboundOrder order, OrderNewEvent event) {
@@ -223,29 +222,31 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         OutboundOrder[] orders = (side == Side.BUY) ? activeBuyOrders : activeSellOrders;
         final int len = ((side == Side.BUY) ? buyQuoteSizes : sellQuoteSizes).length;
 
-        for (int i = 0; i < len && rateLimiter.isOrderAllowed(); i++) {
+        for (int i = 0; i < len; i++) {
             @Decimal final long size = getSize(i, side);
             @Decimal final long price = getPrice(i, side);
 
             OutboundOrder order = orders[i];
             if (order != null) {
+                if (order.isCancelPending())
+                    continue;
                 // check if we really need to replace via min price/size change
                 boolean priceThreshold = Decimal64Utils.isGreater(Decimal64Utils.abs(Decimal64Utils.subtract(order.getWorkingOrder().getLimitPrice(), price)), minPriceChange);
                 // size is probably only useful in REPLICATION source aggregation method
                 boolean sizeThreshold = false;
-                if (priceThreshold || sizeThreshold) {
+                if ((priceThreshold || sizeThreshold) && rateLimiter.isOrderAllowed()) {
                     // if size changed, check maxLong/ShortExposure
                     algorithm.cancelOrder(order);
                     logger.info("Canceled %s quoting order: %s").with(side).with(order);
                 }
             } else {
                 if (side == Side.BUY) {
-                    if (Decimal64Utils.isGreater(Decimal64Utils.add(currentPosition, openBuyQty, size), maxLongExposure))
+                    if (Decimal64Utils.isGreater(Decimal64Utils.add(currentPosition, openBuyQty, size), maxLongExposure) || !rateLimiter.isOrderAllowed())
                         continue;
 
                     openBuyQty = Decimal64Utils.add(openBuyQty, size); // todo: waiting for event will make every orderRequest submitted
                 } else {
-                    if (Decimal64Utils.isGreater(Decimal64Utils.add(Decimal64Utils.subtract(openSellQty, currentPosition), size), maxShortExposure)) {
+                    if (Decimal64Utils.isGreater(Decimal64Utils.add(Decimal64Utils.subtract(openSellQty, currentPosition), size), maxShortExposure) || !rateLimiter.isOrderAllowed()) {
                         continue;
                     }
 
@@ -293,8 +294,24 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     private void removeFromActive(OutboundOrder order) {
+        System.out.println(Decimal64Utils.toString(currentPosition));
+        System.out.println(Decimal64Utils.toString(openBuyQty));
+        System.out.println(Decimal64Utils.toString(openSellQty));
+        System.out.println(Decimal64Utils.toString(openHedgeBuyQty));
+        System.out.println(Decimal64Utils.toString(openHedgeSellQty));
+        System.out.println();
+
+        if (!order.getState().isFinal())
+            throw new IllegalStateException("Order being removed is not final");
+
         @Decimal final long remainingQty = Decimal64Utils.subtract(order.getWorkingQuantity(), order.getTotalExecutedQuantity());
         boolean isBuy = order.getSide() == Side.BUY;
+
+        if (isBuy) {
+            openBuyQty = Decimal64Utils.subtract(openBuyQty, remainingQty);
+        } else {
+            openSellQty = Decimal64Utils.subtract(openSellQty, remainingQty);
+        }
 
         if (CharSequenceUtil.equals(order.getUserData(), "Hedger")) {
             activeHedgingOrders.remove(order);
@@ -303,87 +320,80 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
             } else {
                 openHedgeSellQty = Decimal64Utils.subtract(openHedgeSellQty, remainingQty);
             }
-        }
-
-        if (isBuy) {
-            openBuyQty = Decimal64Utils.subtract(openBuyQty, remainingQty);
-        } else {
-            openSellQty = Decimal64Utils.subtract(openSellQty, remainingQty);
-        }
-    }
-
-    private void resurrectOrder(OutboundOrder order) {
-        System.out.println(Decimal64Utils.toString(currentPosition));
-        System.out.println(Decimal64Utils.toString(openBuyQty));
-        System.out.println(Decimal64Utils.toString(openSellQty));
-        System.out.println(Decimal64Utils.toString(openHedgeBuyQty));
-        System.out.println(Decimal64Utils.toString(openHedgeSellQty));
-        System.out.println();
-
-        if (!rateLimiter.isOrderAllowed())
-            return;
-
-        if (!order.getState().isFinal())
-            throw new IllegalStateException("Order being resurrected is not final");
-
-        final boolean isHedger = CharSequenceUtil.equals(order.getUserData(), "Hedger");
-        if (isHedger) {
             hedgerAction();
         } else {
-            Side side = order.getSide();
-            int i = 0;
-            if (side == Side.BUY) {
-                for (; i < activeBuyOrders.length; i++) {
+            if (isBuy) {
+                for (int i = 0; i < activeBuyOrders.length; i++) {
                     if (order.equals(activeBuyOrders[i])) {
-                        break;
+                        activeBuyOrders[i] = null;
                     }
-                }
-                activeBuyOrders[i] = null;
-                @Decimal final long size = getSize(i, side);
-                @Decimal final long price = getPrice(i, side);
-
-                if (Decimal64Utils.isLessOrEqual(Decimal64Utils.add(currentPosition, openBuyQty, size), maxLongExposure)) {
-                    openBuyQty = Decimal64Utils.add(openBuyQty, size);
-                    order = algorithm.submitQuotingOrder(getSymbol(), size, price, exchange, side);
-                    activeBuyOrders[i] = order;
-                    logger.info("Replaced %s quoting order: %s").with(side).with(order);
                 }
             } else {
-                for (; i < activeSellOrders.length; i++) {
+                for (int i = 0; i < activeSellOrders.length; i++) {
                     if (order.equals(activeSellOrders[i])) {
-                        break;
+                        activeSellOrders[i] = null;
                     }
-                }
-                activeSellOrders[i] = null;
-                @Decimal final long size = getSize(i, side);
-                @Decimal final long price = getPrice(i, side);
-
-                if (Decimal64Utils.isLessOrEqual(Decimal64Utils.add(Decimal64Utils.subtract(openSellQty, currentPosition), size), maxShortExposure)) {
-                    openSellQty = Decimal64Utils.add(openSellQty, size);
-                    order = algorithm.submitQuotingOrder(getSymbol(), size, price, exchange, side);
-                    activeSellOrders[i] = order;
-                    logger.info("Replaced %s quoting order: %s").with(side).with(order);
                 }
             }
         }
     }
 
     private void hedgerAction() {
-        // take active hedging orders into account
-        @Decimal final long currentPositionCorrection = Decimal64Utils.add(currentPosition, Decimal64Utils.subtract(openHedgeBuyQty, openHedgeSellQty));
-        @Decimal final long absCurrentPositionCorrection = Decimal64Utils.abs(currentPositionCorrection);
+        // todo: may be canceled twice if we receive other event earlier than this particular cancelEvent
+        if (currentPosition == Decimal64Utils.ZERO && !activeHedgingOrders.isEmpty()) {
+            algorithm.cancelOrder(activeHedgingOrders.get(activeHedgingOrders.size() - 1));
+            return;
+        }
 
-        if (Decimal64Utils.isGreater(absCurrentPositionCorrection, positionMaxSize)) {
+        if (Decimal64Utils.isPositive(currentPosition)) {
+            // first get rid of hedging buy quotes
+            if (Decimal64Utils.isPositive(openHedgeBuyQty)) {
+                algorithm.cancelOrder(activeHedgingOrders.get(activeHedgingOrders.size() - 1));
+                return;
+            }
+            // then verify that qty of hedging buy quotes <= current position
+            // cancel excess
+            if (Decimal64Utils.isGreater(openHedgeSellQty, currentPosition)) {
+                algorithm.cancelOrder(activeHedgingOrders.get(activeHedgingOrders.size() - 1));
+                return;
+            }
+
+            // check if we need to hedge
+            if (Decimal64Utils.isLessOrEqual(currentPosition, positionMaxSize)) {
+                return;
+            }
+
             // TODO: add Max Order Size
-            @Decimal final long size = Decimal64Utils.subtract(absCurrentPositionCorrection, positionNormalSize);
-            if (Decimal64Utils.isPositive(currentPositionCorrection)) {
+            @Decimal final long size = Decimal64Utils.subtract(Decimal64Utils.subtract(currentPosition, openHedgeSellQty), positionNormalSize);
+            if (Decimal64Utils.isGreater(size, Decimal64Utils.ZERO)) {
                 @Decimal final long leanPrice = orderBook.getMarketSide(QuoteSide.BID).getBestQuote().getPrice();
                 openHedgeSellQty = Decimal64Utils.add(openHedgeSellQty, size);
                 openSellQty = Decimal64Utils.add(openSellQty, size);
                 OutboundOrder hedgingOrder = algorithm.submitHedgingOrder(getSymbol(), size, leanPrice, sourceExchange, Side.SELL);
                 activeHedgingOrders.add(hedgingOrder);
                 logger.info("Submitted %s hedging order: %s").with(Side.SELL).with(hedgingOrder);
-            } else {
+            }
+        } else {
+            // first get rid of hedging sell quotes
+            if (Decimal64Utils.isPositive(openHedgeSellQty)) {
+                algorithm.cancelOrder(activeHedgingOrders.get(activeHedgingOrders.size() - 1));
+                return;
+            }
+            // then verify that qty of hedging sell quotes <= -current position
+            // cancel excess
+            @Decimal final long absCurrentPosition = Decimal64Utils.negate(currentPosition);
+            if (Decimal64Utils.isGreater(openHedgeBuyQty, absCurrentPosition)) {
+                algorithm.cancelOrder(activeHedgingOrders.get(activeHedgingOrders.size() - 1));
+                return;
+            }
+
+            // check if we need to hedge
+            if (Decimal64Utils.isLessOrEqual(absCurrentPosition, positionMaxSize)) {
+                return;
+            }
+
+            @Decimal final long size = Decimal64Utils.subtract(Decimal64Utils.subtract(absCurrentPosition, openHedgeBuyQty), positionNormalSize);
+            if (Decimal64Utils.isGreater(size, Decimal64Utils.ZERO)) {
                 @Decimal final long leanPrice = orderBook.getMarketSide(QuoteSide.ASK).getBestQuote().getPrice();
                 openHedgeBuyQty = Decimal64Utils.add(openHedgeBuyQty, size);
                 openBuyQty = Decimal64Utils.add(openBuyQty, size);
@@ -391,14 +401,6 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                 activeHedgingOrders.add(hedgingOrder);
                 logger.info("Submitted %s hedging order: %s").with(Side.BUY).with(hedgingOrder);
             }
-        }
-
-        if (Decimal64Utils.isLessOrEqual(absCurrentPositionCorrection, positionNormalSize)) {
-            for (int i = 0; i < activeHedgingOrders.size(); i++) {
-                algorithm.cancelOrder(activeHedgingOrders.get(i));
-            }
-
-            activeHedgingOrders.clear();
         }
     }
 

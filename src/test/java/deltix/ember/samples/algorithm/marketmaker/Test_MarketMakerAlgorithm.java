@@ -61,7 +61,7 @@ public class Test_MarketMakerAlgorithm extends SingleLegExecutionAlgoUnitTest<Ma
 
     // When our current position becomes greater than positionMaxSize hedger is triggered
     @Test
-    public void testHedgerPlaceOrder() {
+    public void testHedgerPlacesOrder() {
         simulateOrderBook(symbol, SOURCE_EXCHANGE,
                 "3 @ 9000",
                 "---------------",
@@ -251,12 +251,9 @@ public class Test_MarketMakerAlgorithm extends SingleLegExecutionAlgoUnitTest<Ma
 
         // hedging orders are not required now, we have to cancel one that is still open (20 sell)
         // note that one second is passed, so rate limiter allows next order
-        verifyNewOrderRequest("orderId:Child#6", "quantity:15", "limitPrice:7500", "side:SELL", "destinationId:CME", "timeInForce:IMMEDIATE_OR_CANCEL");
+        verifyCancelOrderRequest("orderId:Child#5");
 
-        simulateTimeAdvance(Duration.ofMillis(1));
-        simulateTradeEvent("Child#6", "7500", "10");
-        simulateOrderCancelEvent("Child#6");
-
+        simulateTimeAdvance(Duration.ofMillis(50));
         verifyNoMessagesFromAlgorithm();
     }
 }
