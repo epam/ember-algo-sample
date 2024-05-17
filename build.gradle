@@ -39,6 +39,7 @@ dependencies {
     implementation 'deltix:deltix-quoteflow:3.8.8'
     implementation 'deltix:rtmath-containers:2.3.21'
     implementation 'deltix:rtmath-containers-decimal:2.3.21'
+    implementation 'rtmath:rtmath-finanalysis:2.1.16'
     implementation "deltix.orderbook:orderbook-core:2.1.18"
 
     // Deltix Collections are used in some TimeBase messages
