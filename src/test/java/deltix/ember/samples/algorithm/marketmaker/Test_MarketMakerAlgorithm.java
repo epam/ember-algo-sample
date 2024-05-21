@@ -7,15 +7,16 @@ import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 
 public class Test_MarketMakerAlgorithm extends SingleLegExecutionAlgoUnitTest<MarketMakerAlgorithm> {
 
     protected static final long EXCHANGE = AlphanumericCodec.encode("JUMP");
     protected static final long SOURCE_EXCHANGE = AlphanumericCodec.encode("CME");
-    protected static final double[] SELL_QUOTE_SIZES = new double[] {150};
-    protected static final double[] BUY_QUOTE_SIZES = new double[] {20, 30, 100};
-    protected static final double[] SELL_MARGINS = new double[] {80};
-    protected static final double[] BUY_MARGINS = new double[] {30, 50, 100};
+    protected static final ArrayList<Double> SELL_QUOTE_SIZES = new ArrayList<>() {{add(150.);}};
+    protected static final ArrayList<Double> BUY_QUOTE_SIZES = new ArrayList<>() {{add(20.); add(30.); add(100.);}};
+    protected static final ArrayList<Double> SELL_MARGINS = new ArrayList<>() {{add(80.);}};
+    protected static final ArrayList<Double> BUY_MARGINS = new ArrayList<>() {{add(30.); add(50.); add(100.);}};
     protected static final double MIN_SPREAD = 100;
     protected static final double MIN_PRICE_CHANGE = 5;
     protected static final double POSITION_MAX_SIZE = 10;

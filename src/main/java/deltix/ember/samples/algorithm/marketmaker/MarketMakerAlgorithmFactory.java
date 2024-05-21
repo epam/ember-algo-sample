@@ -1,20 +1,21 @@
 package deltix.ember.samples.algorithm.marketmaker;
 
-import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.anvil.util.annotation.Alphanumeric;
+import deltix.anvil.util.annotation.Optional;
 import deltix.anvil.util.annotation.Required;
-import deltix.containers.AlphanumericUtils;
 import deltix.ember.service.algorithm.AbstractAlgorithmFactory;
 import deltix.ember.service.algorithm.AlgorithmContext;
 
+import java.util.List;
+
 /**
- * Arbitrage Algorithm Factory.
+ * Market Maker Algorithm Factory.
  * Here is an example of algorithm config in ember.conf file:
  * algorithms {
  *   MM: ${template.algorithm.default} {
  *     factory = "deltix.ember.samples.algorithm.marketmaker.MarketMakerFactory"
  *     subscription {
- *       streams = [ "OKEX", "BINANCE"]
+ *       streams = [ "COINBASE", "BINANCE"]
  *       symbols = [ "BTCUSD" ]
  *     }
  *     settings {
@@ -26,19 +27,9 @@ import deltix.ember.service.algorithm.AlgorithmContext;
  *       sellMargins = [0.01, 0.02]
  *       minSpread = 0.01
  *       minPriceChange = 0.01
- *       minSizeChange = 0.01
  *       positionMaxNormalSize = [10, 5]
- *       maxOrderSize = 1
- *       resendTimeMs = 1000
- *       maxOffset = 0.01
- *       minHedgePriceChange = 0.01
- *       minHedgeSizeChange = 0.01
  *       maxLongExposure = 10
  *       maxShortExposure = 10
- *       minBuyQuoteActiveTime = 1000
- *       minSellQuoteActiveTime = 1000
- *       maxQuoterPositionSize = 10
- *       maxHedgerPositionSize = 10
  *     }
  *   }
  * }
@@ -54,36 +45,54 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
     private long sourceExchange; // Source exchange
 
     // Pricer
+    @Required
     private double[] buyQuoteSizes; // Array of sizes of buy quotes
-    private double[] sellQuoteSizes; // Array of sizes of sell quotes
+    @Required
+    private double[] sellQuoteSizes;
+    @Required
     private double[] buyMargins; // Array of margins/markdowns for buy quotes
+    @Required
     private double[] sellMargins; // Array of margins/markups for sell quotes
+    @Required
     private double minSpread; // Minimal distance between top buy and sell quotes
-    // private String takeOut; // Taking out rule for third-party orders on the market TODO: implement
+    @Required
     private double minPriceChange; // Minimal distance of quote price from a corresponding order limit price
+    @Optional
     private double minSizeChange; // Minimal distance of quote size from a corresponding order size
 
     // Hedger
+    @Required
     private double positionNormalSize;
-    private double positionMaxSize; // Max and normal position size of the bot
-    // private String hedgeInstrument; // Hedge instrument TODO: currently use quoted instrument
-    // private String[] venuesList; // List of exchanges to execute hedge orders TODO: currently use single exchange (source)
-    private double maxOrderSize; // Max order size
-    private long resendTimeMs; // Resend time in milliseconds
-    private double maxOffset; // Max offset
-    private double minHedgePriceChange; // Min price change
-    private double minHedgeSizeChange; // Min size change
+    @Required
+    private double positionMaxSize;
+    @Optional
+    private double maxOrderSize;
+    @Optional
+    private long resendTimeMs;
+    @Optional
+    private double maxOffset;
+    @Optional
+    private double minHedgePriceChange;
+    @Optional
+    private double minHedgeSizeChange;
 
     // Risk Limits
-    private double maxLongExposure; // Maximum long exposure. It's the maximum allowable value for the sum of the current position size and the total buy quantity of the bot on the market.
-    private double maxShortExposure; // Maximum short exposure. It's the maximum allowable value for the difference between the current position size and the total sell quantity of the bot on the market.
-    private long minBuyQuoteActiveTime; // Minimum time (in milliseconds) to keep a quoting buy order on the market before cancelling or replacing it with a new order. Two values can be specified - Aggressive and Defensive.
-    private long minSellQuoteActiveTime; // Minimum time (in milliseconds) to keep a quoting sell order on the market before cancelling or replacing it with a new order. Two values can be specified - Aggressive and Defensive.
-    private double maxQuoterPositionSize; // The upper limit (by absolute value) of the QuoterNetQty of the trading bot.
-    private double maxHedgerPositionSize; // The upper limit (by absolute value) of the HedgerNetQty of the trading bot.
+    @Required
+    private double maxLongExposure; // The maximum allowable value for the sum of the current position size and the total buy quantity of the bot on the market
+    @Required
+    private double maxShortExposure; // The maximum allowable value for the difference between the current position size and the total sell quantity of the bot on the market
+    @Optional
+    private long minBuyQuoteActiveTime; // Minimum time (in milliseconds) to keep a quoting buy order on the market before cancelling or replacing it with a new order
+    @Optional
+    private long minSellQuoteActiveTime;
+    @Optional
+    private double maxQuoterPositionSize; // The upper limit (by absolute value) of the QuoterNetQty of the trading bot
+    @Optional
+    private double maxHedgerPositionSize; // The upper limit of the HedgerNetQty of the trading bot
 
     // Misc
-    private int rateLimit; // per second
+    @Optional
+    private int rateLimit = 1000; // Messages per second
 
     public MarketMakerAlgorithmFactory() {
         setOrderCacheCapacity(1000);
@@ -100,20 +109,20 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
         this.sourceExchange = sourceExchange;
     }
 
-    public void setBuyQuoteSizes(double[] buyQuoteSizes) {
-        this.buyQuoteSizes = buyQuoteSizes;
+    public void setBuyQuoteSizes(List<Double> buyQuoteSizes) {
+        this.buyQuoteSizes = buyQuoteSizes.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
-    public void setSellQuoteSizes(double[] sellQuoteSizes) {
-        this.sellQuoteSizes = sellQuoteSizes;
+    public void setSellQuoteSizes(List<Double> sellQuoteSizes) {
+        this.sellQuoteSizes = sellQuoteSizes.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
-    public void setBuyMargins(double[] buyMargins) {
-        this.buyMargins = buyMargins;
+    public void setBuyMargins(List<Double> buyMargins) {
+        this.buyMargins = buyMargins.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
-    public void setSellMargins(double[] sellMargins) {
-        this.sellMargins = sellMargins;
+    public void setSellMargins(List<Double> sellMargins) {
+        this.sellMargins = sellMargins.stream().mapToDouble(Double::doubleValue).toArray();
     }
 
     public void setMinSpread(double minSpread) {
@@ -189,79 +198,25 @@ public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
         MarketMakerSettings settings = new MarketMakerSettings();
         settings.setExchange(exchange);
         settings.setSourceExchange(sourceExchange);
-        if (buyQuoteSizes == null) {
-            throw new IllegalArgumentException("Buy Quote Sizes is required field");
-        }
         settings.setBuyQuoteSizes(buyQuoteSizes);
-        if (sellQuoteSizes == null) {
-            throw new IllegalArgumentException("Sell Quote Sizes is required field");
-        }
         settings.setSellQuoteSizes(sellQuoteSizes);
-        if (buyMargins == null) {
-            throw new IllegalArgumentException("Buy Margins is required field");
-        }
         settings.setBuyMargins(buyMargins);
-        if (sellMargins == null) {
-            throw new IllegalArgumentException("Sell Margins is required field");
-        }
         settings.setSellMargins(sellMargins);
-        if (minSpread  <= 0) {
-            throw new IllegalArgumentException("Min Spread is required field");
-        }
         settings.setMinSpread(minSpread);
-        if (minPriceChange <= 0) {
-            throw new IllegalArgumentException("Min Price Change is required field");
-        }
         settings.setMinPriceChange(minPriceChange);
-//        if (minSizeChange <= 0) {
-//            throw new IllegalArgumentException("Min Size Change is required field");
-//        }
         settings.setMinSizeChange(minSizeChange);
-        if (positionNormalSize < 0) { // TODO: swap with more robust checks
-            throw new IllegalArgumentException("Position Normal Size is required field");
-        }
         settings.setPositionNormalSize(positionNormalSize);
-        if (positionMaxSize <= 0) {
-            throw new IllegalArgumentException("Position Max Size is required field");
-        }
         settings.setPositionMaxSize(positionMaxSize);
-//        if (maxOrderSize <= 0) {
-//            throw new IllegalArgumentException("Max Order Size is required field");
-//        }
         settings.setMaxOrderSize(maxOrderSize);
-//        if (resendTimeMs <= 0) {
-//            throw new IllegalArgumentException("Resend Time Ms is required field");
-//        }
         settings.setResendTimeMs(resendTimeMs);
-//        if (maxOffset <= 0) {
-//            throw new IllegalArgumentException("Max Offset is required field");
-//        }
         settings.setMaxOffset(maxOffset);
-//        if (minHedgePriceChange <= 0) {
-//            throw new IllegalArgumentException("Min Hedge Price Change is required field");
-//        }
         settings.setMinHedgePriceChange(minHedgePriceChange);
-//        if (minHedgeSizeChange <= 0) {
-//            throw new IllegalArgumentException("Min Hedge Size Change is required field");
-//        }
         settings.setMinHedgeSizeChange(minHedgeSizeChange);
-        if (maxLongExposure <= 0) {
-            throw new IllegalArgumentException("Max Long Exposure is required field");
-        }
         settings.setMaxLongExposure(maxLongExposure);
-        if (maxShortExposure <= 0) {
-            throw new IllegalArgumentException("Max Short Exposure is required field");
-        }
         settings.setMaxShortExposure(maxShortExposure);
         settings.setMinBuyQuoteActiveTime(minBuyQuoteActiveTime);
         settings.setMinSellQuoteActiveTime(minSellQuoteActiveTime);
-//        if (maxQuoterPositionSize <= 0) {
-//            throw new IllegalArgumentException("Max Quoter Position Size is required field");
-//        }
         settings.setMaxQuoterPositionSize(maxQuoterPositionSize);
-//        if (maxHedgerPositionSize <= 0) {
-//            throw new IllegalArgumentException("Max Hedger Position Size is required field");
-//        }
         settings.setMaxHedgerPositionSize(maxHedgerPositionSize);
         settings.setRateLimit(rateLimit);
 

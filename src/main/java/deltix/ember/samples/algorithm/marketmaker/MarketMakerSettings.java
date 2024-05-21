@@ -1,15 +1,12 @@
 package deltix.ember.samples.algorithm.marketmaker;
 
 import deltix.anvil.util.annotation.Alphanumeric;
-import deltix.anvil.util.annotation.Required;
 
 public class MarketMakerSettings {
 
     // Instrument
-    @Required
     @Alphanumeric
     private long exchange;
-    @Required
     @Alphanumeric
     private long sourceExchange;
 
