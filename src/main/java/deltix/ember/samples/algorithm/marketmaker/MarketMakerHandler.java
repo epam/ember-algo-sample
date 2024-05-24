@@ -9,6 +9,7 @@ import deltix.anvil.util.annotation.Timestamp;
 import deltix.ember.message.smd.InstrumentType;
 import deltix.ember.message.smd.InstrumentUpdate;
 import deltix.ember.message.trade.*;
+import deltix.ember.message.trade.oms.PositionReport;
 import deltix.ember.service.algorithm.util.OrderBookHelper;
 import deltix.ember.service.algorithm.util.RoundingTools;
 import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
@@ -32,6 +33,10 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
 
     @Decimal
     private long currentPosition;
+    @Decimal
+    private long avgPositionPrice;
+    @Decimal
+    private long realizedPnL;
     @Decimal
     private long openBuyQty;
     @Decimal
@@ -170,16 +175,17 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         @Decimal final long tradeQty = event.getTradeQuantity();
 
         if (isBuy) {
-            currentPosition = Decimal64Utils.add(currentPosition, tradeQty);
-            if (isHedger)
-                openHedgeBuyQty = Decimal64Utils.subtract(openHedgeBuyQty, tradeQty);
             openBuyQty = Decimal64Utils.subtract(openBuyQty, tradeQty);
+            if (isHedger) {
+                openHedgeBuyQty = Decimal64Utils.subtract(openHedgeBuyQty, tradeQty);
+            }
         } else {
-            currentPosition = Decimal64Utils.subtract(currentPosition, tradeQty);
-            if (isHedger)
-                openHedgeSellQty = Decimal64Utils.subtract(openHedgeSellQty, tradeQty);
             openSellQty = Decimal64Utils.subtract(openSellQty, tradeQty);
+            if (isHedger) {
+                openHedgeSellQty = Decimal64Utils.subtract(openHedgeSellQty, tradeQty);
+            }
         }
+        updateAllTimePosition(event, isBuy);
 
         if (order.isFinal())
             removeFromActive(order);
@@ -233,6 +239,18 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         algorithm.cancelOrder(order);
     }
 
+    public void updatePosition(PositionReport response) {
+        assert response.isLast();
+        assert response.isFound();
+
+        currentPosition = response.getSize();
+        realizedPnL = response.getRealizedPnL();
+        logger.info("Position: %s").withDecimal64(currentPosition);
+        logger.info("PnL: %s").withDecimal64(realizedPnL);
+        logger.info("OpenBuyQty: %s").withDecimal64(response.getOpenBuySize());
+        logger.info("OpenSellQty: %s").withDecimal64(response.getOpenSellSize());
+    }
+
     private void processOrders(Side side) {
         if (currentAskBasePrice == Decimal64Utils.NULL || currentBidBasePrice == Decimal64Utils.NULL) return;
 
@@ -254,7 +272,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                 if ((priceThreshold || sizeThreshold) && rateLimiter.isRequestAllowed()) {
                     // if size changed, check maxLong/ShortExposure
                     algorithm.cancelOrder(order);
-                    logger.info("Canceled %s quoting order: %s").with(side).with(order);
+                    logger.info("Canceled %s quoting order").with(side);
                 }
             } else {
                 if (side == Side.BUY) {
@@ -269,19 +287,18 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                     openSellQty = Decimal64Utils.add(openSellQty, size);
                 }
                 orders[i] = algorithm.submitQuotingOrder(getSymbol(), size, price, exchange, side);
-                logger.info("Submitted %s quoting order: %s").with(side).with(orders[i]);
+                logger.info("Submitted %s quoting order: %s @ %s").with(side).withDecimal64(size).withDecimal64(price);
             }
         }
     }
 
     private void removeFromActive(OutboundOrder order) {
-        System.out.println("Position before removal:");
-        System.out.println(Decimal64Utils.toString(currentPosition));
-        System.out.println(Decimal64Utils.toString(openBuyQty));
-        System.out.println(Decimal64Utils.toString(openSellQty));
-        System.out.println(Decimal64Utils.toString(openHedgeBuyQty));
-        System.out.println(Decimal64Utils.toString(openHedgeSellQty));
-        System.out.println();
+        logger.info("PnL before removal: %s").withDecimal64(realizedPnL);
+        logger.info("Position before removal: %s").withDecimal64(currentPosition);
+        logger.info("OpenBuyQty before removal: %s").withDecimal64(openBuyQty);
+        logger.info("OpenSellQty before removal: %s").withDecimal64(openSellQty);
+        logger.info("OpenHedgeBuyQty before removal: %s").withDecimal64(openHedgeBuyQty);
+        logger.info("OpenHedgeSellQty before removal: %s").withDecimal64(openHedgeSellQty);
 
         if (!order.getState().isFinal())
             throw new IllegalStateException("Order being removed is not final");
@@ -321,14 +338,12 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     private void hedgerAction() {
-        System.out.println("Position before hedging:");
-        System.out.println(Decimal64Utils.toString(currentPosition));
-        System.out.println(Decimal64Utils.toString(Decimal64Utils.ZERO));
-        System.out.println(Decimal64Utils.toString(openBuyQty));
-        System.out.println(Decimal64Utils.toString(openSellQty));
-        System.out.println(Decimal64Utils.toString(openHedgeBuyQty));
-        System.out.println(Decimal64Utils.toString(openHedgeSellQty));
-        System.out.println();
+        logger.info("PnL before removal: %s").withDecimal64(realizedPnL);
+        logger.info("Position before hedging: %s").withDecimal64(currentPosition);
+        logger.info("OpenBuyQty before hedging: %s").withDecimal64(openBuyQty);
+        logger.info("OpenSellQty before hedging: %s").withDecimal64(openSellQty);
+        logger.info("OpenHedgeBuyQty before hedging: %s").withDecimal64(openHedgeBuyQty);
+        logger.info("OpenHedgeSellQty before hedging: %s").withDecimal64(openHedgeSellQty);
 
         if (currentPosition == Decimal64Utils.ZERO && !activeHedgingOrders.isEmpty()) {
             // can be skipped if kept some variable of total pending cancel qty of hedging orders
@@ -369,7 +384,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                 openSellQty = Decimal64Utils.add(openSellQty, size);
                 OutboundOrder hedgingOrder = algorithm.submitHedgingOrder(getSymbol(), size, leanPrice, sourceExchange, Side.SELL);
                 activeHedgingOrders.add(hedgingOrder);
-                logger.info("Submitted %s hedging order: %s").with(Side.SELL).with(hedgingOrder);
+                logger.info("Submitted SELL hedging order: %s @ %s").withDecimal64(size).withDecimal64(leanPrice);
             }
         } else {
             if (Decimal64Utils.isPositive(openHedgeSellQty)) {
@@ -396,7 +411,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                 openBuyQty = Decimal64Utils.add(openBuyQty, size);
                 OutboundOrder hedgingOrder = algorithm.submitHedgingOrder(getSymbol(), size, leanPrice, sourceExchange, Side.BUY);
                 activeHedgingOrders.add(hedgingOrder);
-                logger.info("Submitted %s hedging order: %s").with(Side.BUY).with(hedgingOrder);
+                logger.info("Submitted BUY hedging order: %s @ %s").withDecimal64(size).withDecimal64(leanPrice);
             }
         }
     }
@@ -451,6 +466,50 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
 
     private void setPriceIncrement(long priceIncrement) {
         this.priceIncrement = priceIncrement;
+    }
+
+    protected void updateAllTimePosition(OrderTradeReportEvent tradeEvent, boolean isBuy) {
+        // Position effect of the trade. Negative value indicates that position is decreasing
+        @Decimal long positionEffect = tradeEvent.getTradeQuantity();
+        if (!isBuy) {
+            positionEffect = Decimal64Utils.negate(positionEffect);
+        }
+        final @Decimal long tradePrice = tradeEvent.getTradePrice();
+
+        if (Decimal64Utils.isZero(currentPosition)) { // new position
+            currentPosition = positionEffect;
+            avgPositionPrice = tradePrice;
+
+        } else if (Decimal64Utils.isPositive(currentPosition) == Decimal64Utils.isPositive(positionEffect)) { // increasing position (even if short one)
+            @Decimal long positionCost = Decimal64Utils.add(
+                    Decimal64Utils.multiply(currentPosition, avgPositionPrice),
+                    Decimal64Utils.multiply(positionEffect, tradePrice));
+            currentPosition = Decimal64Utils.add(currentPosition, positionEffect);
+            avgPositionPrice = Decimal64Utils.divide(positionCost, currentPosition);
+
+        } else if (Decimal64Utils.isLess(Decimal64Utils.abs(currentPosition), Decimal64Utils.abs(positionEffect))) { // reverse position
+            // closing position: additional realizedPnL = closed_size * (cost_current - cost_paid)
+            realizedPnL = Decimal64Utils.add(realizedPnL, getRealizedPnlEffect(currentPosition, avgPositionPrice, tradePrice));
+
+            // opening reverse
+            currentPosition = Decimal64Utils.add(currentPosition, positionEffect);
+            avgPositionPrice = tradePrice;
+
+        } else {  // decreasing position (maybe closing it)
+            @Decimal long positionSizeClosed = Decimal64Utils.negate(positionEffect);
+            realizedPnL = Decimal64Utils.add(realizedPnL, getRealizedPnlEffect(positionSizeClosed, avgPositionPrice, tradePrice));
+
+            currentPosition = Decimal64Utils.add(currentPosition, positionEffect);
+            if (Decimal64Utils.isZero(currentPosition))
+                avgPositionPrice = Decimal64Utils.ZERO;
+        }
+    }
+
+    /**
+     * @return Realized PnL effect of closing position with specified size. Negative size indicates short position.
+     */
+    protected @Decimal long getRealizedPnlEffect(@Decimal long positionSize, @Decimal long entryPrice, @Decimal long exitPrice) {
+        return Decimal64Utils.multiply(positionSize, Decimal64Utils.subtract(exitPrice, entryPrice));
     }
 
     private class RateLimiter {

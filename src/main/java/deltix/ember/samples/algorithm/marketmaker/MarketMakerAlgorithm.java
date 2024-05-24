@@ -6,6 +6,10 @@ import deltix.anvil.util.Factory;
 import deltix.anvil.util.annotation.Alphanumeric;
 import deltix.anvil.util.annotation.Timestamp;
 import deltix.ember.message.trade.*;
+import deltix.ember.message.trade.oms.MutablePositionRequest;
+import deltix.ember.message.trade.oms.PositionReport;
+import deltix.ember.service.EmberConstants;
+import deltix.ember.service.PositionRequestHandler;
 import deltix.ember.service.algorithm.AlgorithmContext;
 import deltix.ember.service.algorithm.MarketSubscription;
 import deltix.ember.service.algorithm.md.InstrumentDataFactory;
@@ -49,7 +53,27 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
     public void onNodeStatusEvent(NodeStatusEvent event) {
         super.onNodeStatusEvent(event);
         if (isLeader()) {
+            MutablePositionRequest request = new MutablePositionRequest();
+            request.setRequestId(context.getRequestSequence().next());
+            request.setSourceId(getId());
+            request.setDestinationId(EmberConstants.EMBER_SOURCE_ID);
+            request.setProjection("Source/Symbol");
+            request.setSrc(getId());
+
+            ((PositionRequestHandler)getOMS()).onPositionRequest(request);
             orderProcessor.iterateActiveOrders(this::onLeaderState, null);
+        }
+    }
+
+
+
+    @Override
+    public void onPositionReport(PositionReport response) {
+        MarketMakerHandler handler = get(response.getSymbol());
+        if (handler != null) {
+            handler.updatePosition(response);
+        } else {
+            LOGGER.warn("Canceling unexpected position report %s for symbol %s").with(response).with(response.getSymbol());
         }
     }
 

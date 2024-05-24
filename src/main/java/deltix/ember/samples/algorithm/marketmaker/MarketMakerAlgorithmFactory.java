@@ -5,6 +5,7 @@ import deltix.anvil.util.annotation.Optional;
 import deltix.anvil.util.annotation.Required;
 import deltix.ember.service.algorithm.AbstractAlgorithmFactory;
 import deltix.ember.service.algorithm.AlgorithmContext;
+import deltix.ember.service.algorithm.PositionTracker;
 
 import java.util.List;
 
@@ -34,6 +35,8 @@ import java.util.List;
  *   }
  * }
  */
+
+@PositionTracker
 public class MarketMakerAlgorithmFactory extends AbstractAlgorithmFactory {
 
     // Instrument
