@@ -30,6 +30,8 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     private final Log logger;
     private final MarketMakerAlgorithm algorithm;
     private final boolean isSubscribed;
+    private boolean waitingForPositionResponse;
+    private long toBeCanceled;
 
     @Decimal
     private long currentPosition;
@@ -118,6 +120,8 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         this.activeHedgingOrders = new ArrayList<>();
         this.rateLimiter = new RateLimiter(settings.getRateLimit());
         isSubscribed = algorithm.isSubscribed(getSymbol());
+        toBeCanceled = 0;
+        waitingForPositionResponse = false;
     }
 
     @Override
@@ -147,7 +151,6 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     @Override
     public void onMarketMessage(InstrumentMessage message) {
         super.onMarketMessage(message);
-
 
         if (!isSubscribed || !algorithm.isLeaderNode())
             return;
@@ -209,7 +212,16 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
 
     public void onCanceled(OutboundOrder order, OrderCancelEvent event) {
         // SAFE CANCEL
+        toBeCanceled--;
         removeFromActive(order);
+
+        // canceled all active orders existed before reboot
+        if (toBeCanceled == 0) {
+            waitingForPositionResponse = true;
+            algorithm.submitPositionRequest();
+            return;
+        }
+
         processOrders(Side.BUY);
         processOrders(Side.SELL);
     }
@@ -218,6 +230,8 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     public void onLeaderState(OutboundOrder order) {
+        toBeCanceled++;
+
         @Decimal final long remainingQty = Decimal64Utils.subtract(order.getWorkingQuantity(), order.getTotalExecutedQuantity());
         final boolean isBuy = (order.getSide() == Side.BUY);
 
@@ -240,6 +254,8 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     public void updatePosition(PositionReport response) {
+        waitingForPositionResponse = false;
+
         assert response.isLast();
         assert response.isFound();
 
@@ -252,7 +268,11 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     private void processOrders(Side side) {
-        if (currentAskBasePrice == Decimal64Utils.NULL || currentBidBasePrice == Decimal64Utils.NULL) return;
+        if (algorithm.isIteratingActiveOrders() || toBeCanceled > 0 || waitingForPositionResponse)
+            return;
+
+        if (currentAskBasePrice == Decimal64Utils.NULL || currentBidBasePrice == Decimal64Utils.NULL)
+            return;
 
         OutboundOrder[] orders = (side == Side.BUY) ? activeBuyOrders : activeSellOrders;
         final int len = ((side == Side.BUY) ? buyQuoteSizes : sellQuoteSizes).length;

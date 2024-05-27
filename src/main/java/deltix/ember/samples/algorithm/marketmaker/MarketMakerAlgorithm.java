@@ -20,6 +20,7 @@ import deltix.ember.service.oms.cache.OrdersCacheSettings;
 
 public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMakerHandler, OutboundOrder> {
     private final MarketMakerSettings settings;
+    private boolean isIteratingActiveOrders;
 
     public MarketMakerAlgorithm(AlgorithmContext context, OrdersCacheSettings cacheSettings, MarketMakerSettings settings) {
         super(context, cacheSettings);
@@ -53,19 +54,26 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
     public void onNodeStatusEvent(NodeStatusEvent event) {
         super.onNodeStatusEvent(event);
         if (isLeader()) {
-            MutablePositionRequest request = new MutablePositionRequest();
-            request.setRequestId(context.getRequestSequence().next());
-            request.setSourceId(getId());
-            request.setDestinationId(EmberConstants.EMBER_SOURCE_ID);
-            request.setProjection("Source/Symbol");
-            request.setSrc(getId());
-
-            ((PositionRequestHandler)getOMS()).onPositionRequest(request);
+            isIteratingActiveOrders = true;
             orderProcessor.iterateActiveOrders(this::onLeaderState, null);
+            isIteratingActiveOrders = false;
         }
     }
 
+    public void submitPositionRequest() {
+        MutablePositionRequest request = new MutablePositionRequest();
+        request.setRequestId(context.getRequestSequence().next());
+        request.setSourceId(getId());
+        request.setDestinationId(EmberConstants.EMBER_SOURCE_ID);
+        request.setProjection("Source/Symbol");
+        request.setSrc(getId());
 
+        ((PositionRequestHandler)getOMS()).onPositionRequest(request);
+    }
+
+    public boolean isIteratingActiveOrders() {
+        return isIteratingActiveOrders;
+    }
 
     @Override
     public void onPositionReport(PositionReport response) {
