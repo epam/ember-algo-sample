@@ -24,11 +24,16 @@ import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.MarketMessageInfo;
 import deltix.timebase.api.messages.QuoteSide;
 import deltix.containers.generated.DecimalLongDecimalLongPair;
+import rtmath.finanalysis.indicators.SMA;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Sample that demonstrates how to use Deltix QuoteFlow Order Book in algorithms
  */
 public class OrderBookSampleAlgorithm extends AbstractAlgorithm<AlgoOrder, OrderBookSampleAlgorithm.SampleOrderBook> {
+
+    private static final long SMA_TIME_PERIOD = TimeUnit.MINUTES.toMillis(5);
 
     //TODO//issue#813//private final OrderBookPools sharedOrderBookPools = new OrderBookPools();
     private final DecimalLongDecimalLongPair longlong = new DecimalLongDecimalLongPair();
@@ -58,6 +63,8 @@ public class OrderBookSampleAlgorithm extends AbstractAlgorithm<AlgoOrder, Order
     static final class SampleOrderBook extends AbstractInstrumentData {
 
         private final FullOrderBook orderBook;
+
+        private final SMA sma = new SMA(SMA_TIME_PERIOD);
 
         SampleOrderBook(CharSequence symbol, InstrumentType instrumentType) {
             super(symbol, instrumentType);
@@ -96,6 +103,7 @@ public class OrderBookSampleAlgorithm extends AbstractAlgorithm<AlgoOrder, Order
                 if (Decimal64Utils.isGreaterOrEqual(priceDiff, PRICE_DELTA)) {
                     ///...
                 }
+                sma.add(priceDiff, message.getTimeStampMs());
             }
         }
     }
