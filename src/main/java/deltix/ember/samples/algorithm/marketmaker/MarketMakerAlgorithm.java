@@ -20,7 +20,7 @@ import deltix.ember.service.oms.cache.OrdersCacheSettings;
 
 public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMakerHandler, OutboundOrder> {
     private final MarketMakerSettings settings;
-    private boolean isIteratingActiveOrders;
+    private State state;
 
     public MarketMakerAlgorithm(AlgorithmContext context, OrdersCacheSettings cacheSettings, MarketMakerSettings settings) {
         super(context, cacheSettings);
@@ -54,9 +54,11 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
     public void onNodeStatusEvent(NodeStatusEvent event) {
         super.onNodeStatusEvent(event);
         if (isLeader()) {
-            isIteratingActiveOrders = true;
-            orderProcessor.iterateActiveOrders(this::onLeaderState, null);
-            isIteratingActiveOrders = false;
+            orderProcessor.iterateActiveOrders((order, cookie) -> { cancelOrder(order, "Reboot"); return false; }, null);
+
+            if (!hasActiveOrders()) {
+                submitPositionRequest();
+            }
         }
     }
 
@@ -69,34 +71,33 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         request.setSrc(getId());
 
         ((PositionRequestHandler)getOMS()).onPositionRequest(request);
-    }
 
-    public boolean isIteratingActiveOrders() {
-        return isIteratingActiveOrders;
+        state = State.WAITING_FOR_POSITION_RESPONSE;
     }
 
     @Override
     public void onPositionReport(PositionReport response) {
+        if (response.getError() != null) {
+            LOGGER.error("Market Maker initialization failed to obtain Position of Source/Symbol projection. Make sure Risk Projection was configured");
+            return;
+        }
+
+        if (!response.isFound()) {
+            LOGGER.warn("Source/Symbol projection was not found");
+            state = State.READY;
+            return;
+        }
+
         MarketMakerHandler handler = get(response.getSymbol());
         if (handler != null) {
             handler.updatePosition(response);
         } else {
             LOGGER.warn("Canceling unexpected position report %s for symbol %s").with(response).with(response.getSymbol());
         }
-    }
 
-    /** Called from restart handler to classify (or reference) remaining active orders (helps state recovery on restart) */
-    private boolean onLeaderState(OutboundOrder order, Void cookie) {
-        if (order.isActive()) {
-            MarketMakerHandler handler = get(order.getSymbol());
-            if (handler != null) {
-                handler.onLeaderState(order);
-            } else {
-                LOGGER.warn("Canceling unexpected active order %s for symbol %s").with(order).with(order.getSymbol());
-                orderProcessor.cancelOrder(order, orderProcessor.makeCancelRequest(order, "Reboot"));
-            }
+        if (response.isLast()) {
+            state = State.READY;
         }
-        return false;
     }
 
     /** Submits OrderNewRequest as quoting order */
@@ -113,14 +114,6 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         return submit(result);
     }
 
-    /** Submits OrderReplaceRequest to adjust price or size of quoting order */
-    void replaceQuotingOrder(OutboundOrder order, @Decimal long newPrice, @Decimal long newSize) {
-        MutableOrderReplaceRequest result = orderProcessor.makeReplaceRequest(order);
-        result.setLimitPrice(newPrice);
-        result.setQuantity(newSize);
-        replace(order, result);
-    }
-
     /** Submits OrderNewRequest as hedging order */
     OutboundOrder submitHedgingOrder(CharSequence symbol, @Decimal long orderSize, @Decimal long limitPrice, @Alphanumeric long exchangeId, Side side) {
         MutableOrderNewRequest result = orderProcessor.makeSubmitRequest();
@@ -135,8 +128,8 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         return submit(result);
     }
 
-    void cancelOrder(OutboundOrder order) {
-        MutableOrderCancelRequest result = orderProcessor.makeCancelRequest(order, null);
+    void cancelOrder(OutboundOrder order, CharSequence reason) {
+        MutableOrderCancelRequest result = orderProcessor.makeCancelRequest(order, reason);
         cancel(order, result);
     }
 
@@ -151,13 +144,15 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         public void onTradeReport(OutboundOrder order, OrderTradeReportEvent event) {
             super.onTradeReport(order, event);
 
-            if (isLeader()) {
+            if (isReady()) {
                 MarketMakerHandler handler = get(order.getSymbol());
                 if (handler != null) {
                     handler.onFilled(order, event);
                 } else {
                     LOGGER.warn("Fill %s for unknown symbol %s").with(order).with(order.getSymbol());
                 }
+            } else {
+                updateState();
             }
         }
 
@@ -165,13 +160,15 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         public void onOrderReject(OutboundOrder order, OrderRejectEvent event) {
             super.onOrderReject(order, event);
 
-            if (isLeader()) {
+            if (isReady()) {
                 MarketMakerHandler handler = get(order.getSymbol());
                 if (handler != null) {
                     handler.onRejected(order, event);
                 } else {
                     LOGGER.warn("Reject %s for unknown symbol %s").with(order).with(order.getSymbol());
                 }
+            } else {
+                updateState();
             }
         }
 
@@ -179,13 +176,15 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         public void onOrderCancel(OutboundOrder order, OrderCancelEvent event) {
             super.onOrderCancel(order, event);
 
-            if (isLeader()) {
+            if (isReady()) {
                 MarketMakerHandler handler = get(order.getSymbol());
                 if (handler != null) {
                     handler.onCanceled(order, event);
                 } else {
                     LOGGER.warn("Cancel %s for unknown symbol %s").with(order).with(order.getSymbol());
                 }
+            } else {
+                updateState();
             }
         }
 
@@ -193,13 +192,15 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         public void onOrderNew(OutboundOrder order, OrderNewEvent event) {
             super.onOrderNew(order, event);
 
-            if (isLeader()) {
+            if (isReady()) {
                 MarketMakerHandler handler = get(order.getSymbol());
                 if (handler != null) {
                     handler.onNew(order, event);
                 } else {
-                    LOGGER.warn("New %s for unknown symbol %s").with(order).with(order.getSymbol());
+                    LOGGER.warn("Submit %s for unknown symbol %s").with(order).with(order.getSymbol());
                 }
+            } else {
+                updateState();
             }
         }
     }
@@ -215,13 +216,34 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
         return super.currentTime();
     }
 
-    /** @return true if algorithm is running live (as cluster leader or standalone) */
-    boolean isLeaderNode() {
-        return isLeader();
+    /** @return true if algorithm restored position
+     * otherwise iterates active orders
+     * and can change state */
+    boolean isReady() {
+        return state == State.READY;
+    }
+
+    void updateState() {
+        if (state == State.WAITING_FOR_POSITION_RESPONSE)
+            return;
+
+        if (!hasActiveOrders())
+            submitPositionRequest();
+    }
+
+    boolean hasActiveOrders() {
+        boolean[] result = {false};
+        orderProcessor.iterateActiveOrders((order, cookie) -> { result[0] = true; return true; }, null);
+        return result[0];
     }
 
     boolean isSubscribed(String symbol) {
         MarketSubscription subscription = context.getMarketSubscription();
         return (subscription != null && (subscription.isSubscribedToAll() || subscription.getSymbols().contains(symbol)));
+    }
+
+    private enum State {
+        READY,
+        WAITING_FOR_POSITION_RESPONSE
     }
 }
