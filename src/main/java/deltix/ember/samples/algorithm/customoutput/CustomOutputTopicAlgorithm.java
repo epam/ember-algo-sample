@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  * This bit illustrates message producer side - algorithms that writes to special TimeBase topic.
  * For simplicity this sample publishes dummy messages into designated topic every 5 second.
  *
+ * For illustration of how to consume messages from topics, refer to the {@link <a href="https://ember.deltixlab.com/docs/config/config_reference/#market-data-from-timebase-topics">Ember configuration guide</a>}.
  */
 @SuppressWarnings("rawtypes")
 public class CustomOutputTopicAlgorithm extends SimpleAlgorithm  {
