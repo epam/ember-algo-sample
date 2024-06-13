@@ -12,7 +12,7 @@ repositories {
 }
 
 ext {
-    emberVersion = '1.14.90'
+    emberVersion = '1.14.133'
 }
 
 dependencies {
@@ -59,7 +59,6 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation 'org.mockito:mockito-core:2.6.3'
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
-    testImplementation "deltix:deltix-ember-app:$emberVersion"
     testImplementation "deltix:deltix-ember-message-bus-client:$emberVersion"
 }
 
