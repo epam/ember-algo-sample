@@ -4,7 +4,10 @@ import deltix.anvil.util.CloseHelper;
 import deltix.ember.service.algorithm.AlgorithmContext;
 import deltix.ember.service.algorithm.SimpleAlgorithm;
 import deltix.ember.service.algorithm.SourcePoller;
+import deltix.ember.timebase.util.ParentIgnoringTypeLoader;
 import deltix.qsrv.hf.pub.InstrumentMessage;
+import deltix.timebase.api.messages.rfq.QuoteCancel;
+import deltix.timebase.api.messages.rfq.QuoteRequest;
 
 import java.util.function.Consumer;
 
@@ -19,7 +22,11 @@ class CustomInputChannelAlgorithm extends SimpleAlgorithm {
         Consumer<InstrumentMessage> messageConsumer = this::onCustomInputMessage;
 
         // here we create a poller for TimeBase stream identified by given stream key
-        customSourcePoller = context.createInputPoller(customStreamKey, messageConsumer);
+        customSourcePoller = context.createInputPollerBuilder(customStreamKey)
+                //.withInitialTime(currentTime() - TimeUnit.HOURS.toMillis(3))  - if you want to start with warm up
+                //.with(ParentIgnoringTypeLoader.INSTANCE) - suppress warnings about missing connector classes
+                // .withTypes(QuoteRequest.class.getName(), QuoteCancel.class.getName()) - optional type filter
+                .build(messageConsumer);
     }
 
     /** Callback that will process custom messages */
