@@ -21,21 +21,24 @@ public class CustomLatencyTracerAlgorithm extends SimpleAlgorithm {
                 context.getCounterFactory(),
                 latencyStatPeriod,
                 Duration.ofMillis(50), // unreasonable max
-                10,
-                100
+                10, // skip first N evens for warmup
+                100 // stop logging errors after first 100
                 );
 
+        // tracer wills start publishing latency histogram as ember metric at configurable interval
         fillLatencyTracer.schedule(getTimer());
     }
 
 
     @Override
     protected void handleTradeEvent(ChildOrder<AlgoOrder> order, OrderTradeReportEvent event) {
-        super.handleTradeEvent(order, event);
 
         fillLatencyTracer.addRecord(
-                event.getTimestampNs(), // when FILL event entered Trade Connector
-                currentTimeNs()         // current time
+                event.getTimestampNs(), // when FILL event entered Trade Connector (epoch time in nanos)
+                currentTimeNs()         // current time (epoch time in nanos)
         );
+
+        super.handleTradeEvent(order, event);
+
     }
 }
