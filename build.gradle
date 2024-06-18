@@ -55,6 +55,9 @@ dependencies {
     // @Nullable, etc.
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
 
+    // Optional HDR Histogram for latency monitoring
+    implementation 'org.hdrhistogram:HdrHistogram:2.1.12'
+
     // Unit tests
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation 'org.mockito:mockito-core:2.6.3'
