@@ -51,6 +51,7 @@ public class CustomOutputTopicAlgorithm extends SimpleAlgorithm  {
         CloseHelper.close(outputChannel);
     }
 
+    @SuppressWarnings("unchecked")
     private @Timestamp long publishDummyMessage (@Timestamp long now, Void cookie) {
         assert isLeader() : "leader";
 
