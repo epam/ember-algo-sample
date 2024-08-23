@@ -1,7 +1,14 @@
-apply plugin: 'java'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+plugins {
+    // Supports functionality similar to Maven BOM.
+    // Helps to avoid re-declaring dependency version in each subproject.
+    // See https://github.com/spring-gradle-plugins/dependency-management-plugin
+    id "io.spring.dependency-management" version "1.1.5" apply false
+}
+
+
+apply plugin: 'java'
+apply plugin: 'io.spring.dependency-management'
 
 apply from: "$rootDir/gradle/deltix.gradle"
 apply from: "$rootDir/gradle/docker-support.gradle"
@@ -11,46 +18,58 @@ repositories {
     mavenCentral()
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 ext {
-    emberVersion = '1.14.133'
+    emberVersion = '1.14.154'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom 'deltix:deltix-ember-bom:' + emberVersion
+    }
 }
 
 dependencies {
-    // Publication
-    implementation "deltix:deltix-anvil-lang:$emberVersion"
-    implementation "deltix:deltix-ember-api:$emberVersion"
-    implementation "deltix:deltix-ember-algo-api:$emberVersion"
-    implementation "deltix:deltix-ember-message:$emberVersion"
-    implementation "deltix:deltix-ember-codec:$emberVersion"
-    implementation "deltix:deltix-anvil-cluster:$emberVersion"
-    implementation "deltix:deltix-efix-core:$emberVersion"
+    // Ember API
+    implementation "deltix:deltix-anvil-lang"
+    implementation "deltix:deltix-ember-api"
+    implementation "deltix:deltix-ember-algo-api"
+    implementation "deltix:deltix-ember-message"
+    implementation "deltix:deltix-ember-codec"
+    implementation "deltix:deltix-anvil-cluster"
+    implementation "deltix:deltix-efix-core"
 
-    // Centralized security master
-    implementation 'deltix:sm-messages:2.0.59'
-    implementation 'deltix:deltix-sm-api:2.0.59'
+    // Centralized security master API
+    implementation 'deltix:sm-messages'
+    implementation 'deltix:deltix-sm-api'
 
     // Decimal datatype
-    implementation 'com.epam.deltix:dfp:1.0.1'
+    implementation 'com.epam.deltix:dfp'
 
-    // Logging
-    implementation 'com.epam.deltix:gflog-api:3.0.4'
+    // GC Free Logging
+    implementation 'com.epam.deltix:gflog-api'
 
-    // Order Book API
-    implementation 'deltix:deltix-quoteflow:3.8.8'
-    implementation 'deltix:rtmath-containers:2.3.21'
-    implementation 'deltix:rtmath-containers-decimal:2.3.21'
-    implementation 'rtmath:rtmath-finanalysis:2.1.16'
-    implementation "deltix.orderbook:orderbook-core:2.1.32"
+    // New Order Book API
+    implementation "deltix.orderbook:orderbook-core"
+
+    // Classic Order Book API
+    implementation 'deltix:deltix-quoteflow'
+    implementation 'deltix:deltix-containers'
+
+    implementation 'rtmath:rtmath-finanalysis'
 
     // Deltix Collections are used in some TimeBase messages
-    implementation "deltix.qsrv:deltix-commons-collections:5.6.13"
-    implementation "deltix.qsrv:deltix-commons-util:5.6.13"
-    implementation "deltix.qsrv:deltix-commons-lang:5.6.13"
+    implementation "deltix.qsrv:deltix-commons-collections"
+    implementation "deltix.qsrv:deltix-commons-util"
+    implementation "deltix.qsrv:deltix-commons-lang"
 
-    implementation "deltix.qsrv:deltix-timebase-api-messages:5.6.26"
+    implementation "deltix.qsrv:deltix-timebase-api-messages"
 
     // We need this if we want to Run/Debug algo from this project
-    runtimeOnly  "deltix:deltix-ember-app:$emberVersion"
 
     // @Nullable, etc.
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.2'
@@ -59,12 +78,25 @@ dependencies {
     implementation 'org.hdrhistogram:HdrHistogram:2.1.12'
 
     // Unit tests
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
     testImplementation 'org.mockito:mockito-core:2.6.3'
+    testImplementation "deltix:deltix-ember-message-bus-client"
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
-    testImplementation "deltix:deltix-ember-message-bus-client:$emberVersion"
+    testImplementation  "deltix:deltix-ember-app:$emberVersion"
 }
 
+test {
+    // useJUnitPlatform() // if you're using JUnit 5
+    maxHeapSize = '4G'
+    minHeapSize = '4G'
+
+    jvmArgs '--add-opens=java.base/sun.nio.ch=ALL-UNNAMED',
+            '--add-opens=java.base/sun.nio=ALL-UNNAMED',
+            '--add-opens=java.base/java.nio=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.util.zip=ALL-UNNAMED',
+            '--add-opens=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+}
 
 // ZIP with sample algorithms to share with clients (result file can be found under build/distributions/*.zip)
 task makeZIP(type: Zip) {
@@ -94,7 +126,7 @@ ext.dockerFileReplaceTokens = [
 // Use :dockerBuildImage to make a docker image
 task prepareFilesForDocker(type: Copy) {
     group 'docker'
-    dependsOn ':marketfactory:jar'
+    dependsOn ':jar'
 
     def outputDir = file("${buildDir}/docker/custom")
 
