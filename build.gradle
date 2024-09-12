@@ -23,7 +23,7 @@ java {
 }
 
 ext {
-    emberVersion = '1.14.154'
+    emberVersion = '1.14.161'
 }
 
 dependencyManagement {
