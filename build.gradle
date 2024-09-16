@@ -3,10 +3,13 @@ plugins {
     // Helps to avoid re-declaring dependency version in each subproject.
     // See https://github.com/spring-gradle-plugins/dependency-management-plugin
     id "io.spring.dependency-management" version "1.1.5" apply false
+
+    id 'idea'
 }
 
 
 apply plugin: 'java'
+apply plugin: 'idea'
 apply plugin: 'io.spring.dependency-management'
 
 apply from: "$rootDir/gradle/deltix.gradle"
@@ -82,6 +85,13 @@ dependencies {
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
     // We need this if we want to Run/Debug algo from this project
     testImplementation "deltix:deltix-ember-app:$emberVersion"
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
 }
 
 test {
