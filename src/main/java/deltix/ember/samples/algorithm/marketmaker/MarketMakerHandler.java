@@ -30,25 +30,23 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     private final Log logger;
     private final MarketMakerAlgorithm algorithm;
     private final boolean isSubscribed;
-    private boolean waitingForPositionResponse;
-    private long toBeCanceled;
 
     @Decimal
-    private long currentPosition;
+    private long currentPosition = Decimal64Utils.ZERO;
     @Decimal
-    private long avgPositionPrice;
+    private long avgPositionPrice = Decimal64Utils.NULL;
     @Decimal
-    private long realizedPnL;
+    private long realizedPnL = Decimal64Utils.ZERO;
     @Decimal
-    private long openBuyQty;
+    private long openBuyQty = Decimal64Utils.ZERO;
     @Decimal
-    private long openSellQty;
+    private long openSellQty = Decimal64Utils.ZERO;
     @Decimal
-    private long openHedgeBuyQty; // buyQty and SellQty both cannot be positive
+    private long openHedgeBuyQty = Decimal64Utils.ZERO; // buyQty and SellQty both cannot be positive
     @Decimal
-    private long openHedgeSellQty;
+    private long openHedgeSellQty = Decimal64Utils.ZERO;
     @Decimal
-    private long priceIncrement;
+    private long priceIncrement = Decimal64Utils.NULL;
     @Decimal
     private long currentAskBasePrice = Decimal64Utils.NULL;
     @Decimal
@@ -110,18 +108,11 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
 
         this.algorithm = algorithm;
         this.logger = logger;
-        this.currentPosition = Decimal64Utils.ZERO;
-        this.openSellQty = Decimal64Utils.ZERO;
-        this.openBuyQty = Decimal64Utils.ZERO;
-        this.openHedgeSellQty = Decimal64Utils.ZERO;
-        this.openHedgeBuyQty = Decimal64Utils.ZERO;
         this.activeSellOrders = new OutboundOrder[sellQuoteSizes.length];
         this.activeBuyOrders = new OutboundOrder[buyQuoteSizes.length];
         this.activeHedgingOrders = new ArrayList<>();
         this.rateLimiter = new RateLimiter(settings.getRateLimit());
         isSubscribed = algorithm.isSubscribed(getSymbol());
-        toBeCanceled = 0;
-        waitingForPositionResponse = false;
     }
 
     @Override
@@ -152,7 +143,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     public void onMarketMessage(InstrumentMessage message) {
         super.onMarketMessage(message);
 
-        if (!isSubscribed || !algorithm.isLeaderNode())
+        if (!isSubscribed || !algorithm.isReady())
             return;
 
         currentAskBasePrice = calculateBasePrice(QuoteSide.ASK);
@@ -212,16 +203,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
 
     public void onCanceled(OutboundOrder order, OrderCancelEvent event) {
         // SAFE CANCEL
-        toBeCanceled--;
         removeFromActive(order);
-
-        // canceled all active orders existed before reboot
-        if (toBeCanceled == 0) {
-            waitingForPositionResponse = true;
-            algorithm.submitPositionRequest();
-            return;
-        }
-
         processOrders(Side.BUY);
         processOrders(Side.SELL);
     }
@@ -229,36 +211,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     public void onNew(OutboundOrder order, OrderNewEvent event) {
     }
 
-    public void onLeaderState(OutboundOrder order) {
-        toBeCanceled++;
-
-        @Decimal final long remainingQty = Decimal64Utils.subtract(order.getWorkingQuantity(), order.getTotalExecutedQuantity());
-        final boolean isBuy = (order.getSide() == Side.BUY);
-
-        if (isBuy) {
-            openBuyQty = Decimal64Utils.add(openBuyQty, remainingQty);
-        } else {
-            openSellQty = Decimal64Utils.add(openSellQty, remainingQty);
-        }
-
-        if (CharSequenceUtil.equals(order.getUserData(), "Hedger")) {
-            if (isBuy) {
-                openHedgeBuyQty = Decimal64Utils.add(openHedgeBuyQty, remainingQty);
-            } else {
-                openHedgeSellQty = Decimal64Utils.add(openHedgeSellQty, remainingQty);
-            }
-        }
-
-        // we don't have to save this orders in containers, they should be removed
-        algorithm.cancelOrder(order);
-    }
-
     public void updatePosition(PositionReport response) {
-        waitingForPositionResponse = false;
-
-        assert response.isLast();
-        assert response.isFound();
-
         currentPosition = response.getSize();
         realizedPnL = response.getRealizedPnL();
         logger.info("Position: %s").withDecimal64(currentPosition);
@@ -268,9 +221,6 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     }
 
     private void processOrders(Side side) {
-        if (algorithm.isIteratingActiveOrders() || toBeCanceled > 0 || waitingForPositionResponse)
-            return;
-
         if (currentAskBasePrice == Decimal64Utils.NULL || currentBidBasePrice == Decimal64Utils.NULL)
             return;
 
@@ -291,7 +241,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
                 boolean sizeThreshold = false;
                 if ((priceThreshold || sizeThreshold) && rateLimiter.isRequestAllowed()) {
                     // if size changed, check maxLong/ShortExposure
-                    algorithm.cancelOrder(order);
+                    algorithm.cancelOrder(order, null);
                     logger.info("Canceled %s quoting order").with(side);
                 }
             } else {
@@ -386,7 +336,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
             if (Decimal64Utils.isGreater(openHedgeSellQty, currentPosition)) {
                 OutboundOrder o = activeHedgingOrders.get(0);
                 if (!o.isCancelPending() && rateLimiter.isRequestAllowed())
-                    algorithm.cancelOrder(o);
+                    algorithm.cancelOrder(o, null);
                 return;
             }
 
@@ -416,7 +366,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
             if (Decimal64Utils.isGreater(openHedgeBuyQty, absCurrentPosition)) {
                 OutboundOrder o = activeHedgingOrders.get(0);
                 if (!o.isCancelPending() && rateLimiter.isRequestAllowed())
-                    algorithm.cancelOrder(o);
+                    algorithm.cancelOrder(o, null);
                 return;
             }
 
@@ -440,7 +390,7 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         for (int i = 0; i < activeHedgingOrders.size(); i++) {
             OutboundOrder o = activeHedgingOrders.get(i);
             if (!o.isCancelPending() && rateLimiter.isRequestAllowed())
-                algorithm.cancelOrder(o);
+                algorithm.cancelOrder(o, null);
         }
     }
 
