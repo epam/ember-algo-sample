@@ -1,4 +1,4 @@
-package deltix.ember.service.algorithm.samples.t2o;
+package deltix.ember.samples.algorithm.t2o;
 
 import deltix.anvil.util.codec.AlphanumericCodec;
 import com.epam.deltix.dfp.Decimal64Utils;

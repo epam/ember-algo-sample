@@ -1,4 +1,4 @@
-package deltix.ember.service.algorithm.samples.sim;
+package deltix.ember.samples.algorithm.sim;
 
 import deltix.ember.service.algorithm.AbstractAlgorithmFactory;
 import deltix.ember.service.algorithm.AlgorithmContext;

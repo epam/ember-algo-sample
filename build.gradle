@@ -26,7 +26,7 @@ java {
 }
 
 ext {
-    emberVersion = '1.14.161'
+    emberVersion = '1.14.185'
 }
 
 dependencyManagement {
@@ -85,6 +85,7 @@ dependencies {
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
     // We need this if we want to Run/Debug algo from this project
     testImplementation "deltix:deltix-ember-app:$emberVersion"
+    testImplementation "deltix:deltix-ember-algo-backtest:$emberVersion"
 }
 
 idea {
@@ -129,7 +130,7 @@ ext {
 }
 
 ext.dockerFileReplaceTokens = [
-    emberDockerImageVersion: emberVersion
+    emberDockerImageVersion: "1.14.244"
 ]
 
 // Use :dockerBuildImage to make a docker image

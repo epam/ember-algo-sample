@@ -1,4 +1,4 @@
-package deltix.ember.service.algorithm.samples.fakefeed;
+package deltix.ember.samples.algorithm.fakefeed;
 
 import deltix.anvil.util.annotation.Optional;
 import deltix.ember.service.algorithm.AbstractAlgorithmFactory;

@@ -1,4 +1,4 @@
-package deltix.ember.service.algorithm.samples.positions;
+package deltix.ember.samples.algorithm.positions;
 
 import deltix.anvil.message.NodeStatus;
 import deltix.anvil.message.NodeStatusEvent;

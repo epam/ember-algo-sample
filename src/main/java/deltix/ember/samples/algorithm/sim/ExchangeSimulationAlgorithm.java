@@ -1,4 +1,4 @@
-package deltix.ember.service.algorithm.samples.sim;
+package deltix.ember.samples.algorithm.sim;
 
 import deltix.anvil.util.AsciiStringBuilder;
 import deltix.anvil.util.CharSequenceUtil;
