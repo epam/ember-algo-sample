@@ -1,5 +1,7 @@
 package deltix.ember.samples.algorithm.twap;
 
+import com.epam.deltix.dfp.Decimal;
+import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.anvil.util.CharSequenceParser;
 import deltix.anvil.util.TypeConstants;
 import deltix.anvil.util.annotation.Duration;
@@ -9,18 +11,14 @@ import deltix.anvil.util.parser.TimestampParser;
 import deltix.anvil.util.timer.Timer;
 import deltix.anvil.util.timer.TimerCallback;
 import deltix.anvil.util.timer.TimerJob;
-import com.epam.deltix.dfp.Decimal;
-import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.ember.message.trade.CustomAttribute;
 import deltix.ember.message.trade.OrderEntryRequest;
-import deltix.ember.message.trade.OrderEvent;
-import deltix.ember.service.algorithm.AlgoOrder;
 import deltix.ember.service.algorithm.util.OrderAttributesParser;
+import deltix.ember.service.algorithm.v2.order.InboundParentOrder;
 import deltix.ember.service.valid.InvalidOrderException;
 import deltix.util.collections.generated.ObjectList;
 
-class TwapOrder extends AlgoOrder {
-    static final long ONE_LOT = Decimal64Utils.ONE;
+class TwapOrder extends InboundParentOrder {
 
     /// region Input Parameters
     static final int START_TIME_ATTRIBUTE_KEY = 6021;
@@ -64,7 +62,7 @@ class TwapOrder extends AlgoOrder {
 
     /// endregion State
 
-    void copyExtraAttributes(OrderEntryRequest request, boolean modify, EpochClock clock) {
+    void copyExtraAttributes(OrderEntryRequest request, EpochClock clock) {
         // parse parameters
         if (request.hasAttributes()) {
             ObjectList<CustomAttribute> attributes = request.getAttributes();
@@ -112,7 +110,6 @@ class TwapOrder extends AlgoOrder {
 
     }
 
-
     /**
      * @return size of next clip (next child order). Result will be less than minimum lot size of no order should be sent during current period
      */
@@ -147,22 +144,21 @@ class TwapOrder extends AlgoOrder {
     }
 
     @Override
-    public void onDeactivate(OrderEvent finalEvent) {
-        super.onDeactivate(finalEvent);
-            cancelNextSliceTask();
+    public void onDeactivate() {
+        super.onDeactivate();
+        cancelNextSliceTask();
     }
 
     @Override
     public void clear() {
-        super.clear();
-        assert nextSliceTask == null : "timer";
+        cancelNextSliceTask();
         clipNo = 0;
-        nextSliceTask = null;
         startTime = TypeConstants.TIMESTAMP_NULL;
         endTime = TypeConstants.TIMESTAMP_NULL;
         duration = TypeConstants.TIMESTAMP_NULL;
         dripPercentage = 0;
         activeTolerancePercentage = 0;
+        super.clear();
     }
 
     void scheduleNextSliceTask(Timer timer, TimerCallback<TwapOrder> callback) {
