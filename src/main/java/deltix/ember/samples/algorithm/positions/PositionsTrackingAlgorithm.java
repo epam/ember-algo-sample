@@ -12,7 +12,7 @@ import deltix.ember.service.oms.cache.OrdersCacheSettings;
 
 /**
  * Algorithm that illustrates how to request snapshot of positions.
- * NB: @PositionTracker annotation on factory class
+ * NB: @PositionTracker annotation on factory class PositionsTrackingAlgorithmFactory
  */
 public class PositionsTrackingAlgorithm extends SimpleAlgorithm {
     PositionsTrackingAlgorithm(AlgorithmContext context) {
