@@ -26,7 +26,7 @@ java {
 }
 
 ext {
-    emberVersion = '1.14.185'
+    emberVersion = '1.14.227'
 }
 
 dependencyManagement {
@@ -80,6 +80,7 @@ dependencies {
 
     // Unit tests
     testImplementation group: 'junit', name: 'junit', version: '4.13.1'
+    testImplementation  "org.junit.jupiter:junit-jupiter-api"
     testImplementation 'org.mockito:mockito-core:2.6.3'
     testImplementation "deltix:deltix-ember-message-bus-client"
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
@@ -130,7 +131,7 @@ ext {
 }
 
 ext.dockerFileReplaceTokens = [
-    emberDockerImageVersion: "1.14.244"
+    emberDockerImageVersion: "1.14.351"
 ]
 
 // Use :dockerBuildImage to make a docker image

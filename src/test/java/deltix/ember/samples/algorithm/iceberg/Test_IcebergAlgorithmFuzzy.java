@@ -6,9 +6,8 @@ import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.ember.message.trade.MutableOrderEntryRequest;
 import deltix.ember.service.algorithm.AlgoOrder;
 import deltix.ember.service.algorithm.fuzzy.AlgorithmFuzzyTest;
-import deltix.ember.service.algorithm.fuzzy.SimpleAlgorithmFuzzyTest;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
@@ -50,7 +49,10 @@ public class Test_IcebergAlgorithmFuzzy extends AlgorithmFuzzyTest<IcebergAlgori
         @Decimal long workingQuantity = algoOrder.getRemainingChildrenQuantity();
         @Decimal long displayQuantity = algoOrder.getWorkingOrder().getDisplayQuantity();
         if (!Decimal64Utils.isNaN(displayQuantity)) {
-            Assert.assertTrue("Working " + Decimal64Utils.toString(workingQuantity) + " <= Display " + Decimal64Utils.toString(displayQuantity), Decimal64Utils.isLessOrEqual(workingQuantity, displayQuantity));
+            Assertions.assertTrue(
+                    Decimal64Utils.isLessOrEqual(workingQuantity, displayQuantity),
+                    "Working " + Decimal64Utils.toString(workingQuantity) + " <= Display " + Decimal64Utils.toString(displayQuantity)
+            );
         }
     }
 }
