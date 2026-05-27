@@ -13,7 +13,6 @@ import deltix.ember.service.algorithm.ChildOrder;
 import deltix.ember.service.algorithm.md.AbstractInstrumentData;
 import deltix.ember.service.algorithm.md.InstrumentDataFactory;
 import deltix.ember.service.oms.cache.OrdersCacheSettings;
-import deltix.orderbook.core.api.ErrorListener;
 import deltix.orderbook.core.api.Exchange;
 import deltix.orderbook.core.api.MarketSide;
 import deltix.orderbook.core.api.OrderBook;
@@ -34,10 +33,33 @@ import rtmath.finanalysis.indicators.SMA;
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
-public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, NewOrderBookSampleAlgorithm.SampleOrderBook> {
 
-    private static final @Alphanumeric long BINANCE_EXCHANGE_ID = AlphanumericCodec.encode("BINANCE");
-    private static final @Alphanumeric long COINBASE_EXCHANGE_ID = AlphanumericCodec.encode("COINBASE");
+import com.epam.deltix.dfp.Decimal;
+import com.epam.deltix.dfp.Decimal64Utils;
+import deltix.anvil.util.Factory;
+import deltix.anvil.util.annotation.Alphanumeric;
+import deltix.anvil.util.codec.AlphanumericCodec;
+import deltix.ember.message.smd.InstrumentType;
+import deltix.ember.service.algorithm.AbstractAlgorithm;
+import deltix.ember.service.algorithm.AlgoOrder;
+import deltix.ember.service.algorithm.AlgorithmContext;
+import deltix.ember.service.algorithm.ChildOrder;
+import deltix.ember.service.algorithm.md.AbstractInstrumentData;
+import deltix.ember.service.algorithm.md.InstrumentDataFactory;
+import deltix.ember.service.oms.cache.OrdersCacheSettings;
+import deltix.orderbook.core.api.*;
+        import deltix.orderbook.core.options.*;
+        import deltix.qsrv.hf.pub.InstrumentMessage;
+import deltix.timebase.api.messages.DataModelType;
+import deltix.timebase.api.messages.MarketMessageInfo;
+import deltix.timebase.api.messages.QuoteSide;
+import rtmath.finanalysis.indicators.SMA;
+
+import javax.annotation.Nonnull;
+import java.util.concurrent.TimeUnit;
+
+public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder, SingleExchangeOrderBookSample.SampleOrderBook> {
+
 
     private static final @Decimal long FIVE_CONTRACTS = Decimal64Utils.fromInt(5);
     private static final @Decimal long HUNDRED = Decimal64Utils.fromLong(100);
@@ -46,16 +68,16 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
 
     private final long [] moneyVolume = new long[2];
 
-    private static final OrderBookOptions COMMON_ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
+    private static final OrderBookOptions ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
             .quoteLevels(DataModelType.LEVEL_TWO)
             //.initialMaxDepth(marketDepth)
             //.initialExchangesPoolSize(exchangeIds.length)
             .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
-            .orderBookType(OrderBookType.AGGREGATED)
+            .orderBookType(OrderBookType.SINGLE_EXCHANGE)
             .disconnectMode(DisconnectMode.CLEAR_EXCHANGE)
             .build();
 
-    public NewOrderBookSampleAlgorithm(AlgorithmContext context, OrdersCacheSettings cacheSettings) {
+    public SingleExchangeOrderBookSample(AlgorithmContext context, OrdersCacheSettings cacheSettings) {
         super(context, cacheSettings);
     }
 
@@ -72,18 +94,13 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
     /** Tell container we use SampleOrderBook instances to process market data for each instrument */
     @Override
     protected InstrumentDataFactory<SampleOrderBook> createInstrumentDataFactory() {
-        return NewOrderBookSampleAlgorithm.SampleOrderBook::new;
+        return SingleExchangeOrderBookSample.SampleOrderBook::new;
     }
 
 
-    final class SampleOrderBook extends AbstractInstrumentData {
+    static final class SampleOrderBook extends AbstractInstrumentData {
 
         private final OrderBook<OrderBookQuote> orderBook;
-
-        private final ErrorListener bookErrorListener = (message, errorCode) -> {
-            LOGGER.error("Error processing market message %s: %s").withTimestampNs(message.getTimeStampNs()).with(errorCode);
-        };
-
 
         private final SMA sma = new SMA(SMA_TIME_PERIOD);
 
@@ -91,13 +108,11 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
             super(symbol, instrumentType);
 
             final OrderBookOptions orderBookOptions = new OrderBookOptionsBuilder()
-                    .parent(COMMON_ORDER_BOOK_OPTIONS)
+                    .parent(ORDER_BOOK_OPTIONS)
                     .symbol(getSymbol())
-                    .errorListener(bookErrorListener)
                     .build();
 
             this.orderBook = OrderBookFactory.create(orderBookOptions);
-
         }
 
         @Override
@@ -139,38 +154,7 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
     }
 
 
-    /** Very basic illustration of Full Order Book component API. Refer to QuoteFlow  */
-    private void iterateAggregatedBook (OrderBook<OrderBookQuote> aggregatedBook) {
 
-        if (LOGGER.isTraceEnabled()) {
-            getMoneyForVolume(aggregatedBook.getMarketSide(QuoteSide.ASK), HUNDRED, moneyVolume);
-
-            LOGGER.trace("You need %s to buy %s")
-                    .withDecimal64(moneyVolume[0])
-                    .withDecimal64(HUNDRED);
-
-            LOGGER.trace("VWAP ask:%s bid:%s")
-                    .withDecimal64(calculateVWAP(aggregatedBook.getMarketSide(QuoteSide.BID), FIVE_CONTRACTS))
-                    .withDecimal64(calculateVWAP(aggregatedBook.getMarketSide(QuoteSide.ASK), FIVE_CONTRACTS));
-        }
-    }
-
-
-    /** Similar sample for per-exchange book API */
-    private void inspectExchangeBook (OrderBook<OrderBookQuote> aggregatedBook) {
-        Option<? extends Exchange<OrderBookQuote>> singleBook = aggregatedBook.getExchanges().getById(BINANCE_EXCHANGE_ID);
-
-        if (LOGGER.isTraceEnabled() && singleBook.hasValue()) {
-            getMoneyForVolume(singleBook.get().getMarketSide(QuoteSide.ASK), HUNDRED, moneyVolume);
-            LOGGER.trace("You need %s to buy %s on BINANCE")
-                    .withDecimal64(moneyVolume[0])
-                    .withDecimal64(HUNDRED);
-
-            LOGGER.trace("BINANCE VWAP ask:%s bid:%s")
-                    .withDecimal64(calculateVWAP(singleBook.get().getMarketSide(QuoteSide.BID), FIVE_CONTRACTS))
-                    .withDecimal64(calculateVWAP(singleBook.get().getMarketSide(QuoteSide.ASK), FIVE_CONTRACTS));
-        }
-    }
 
     private static @Decimal long calculateVWAP (MarketSide<OrderBookQuote> levels, @Decimal long targetVolume) {
         @Decimal long totalValue = Decimal64Utils.ZERO;
@@ -212,8 +196,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
         result[1] = Decimal64Utils.min(_volume, volume);
         return result;
     }
-
-
 }
 
 
