@@ -84,7 +84,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
             LOGGER.error("Error processing market message %s: %s").withTimestampNs(message.getTimeStampNs()).with(errorCode);
         };
 
-
         private final SMA sma = new SMA(SMA_TIME_PERIOD);
 
         SampleOrderBook(CharSequence symbol, InstrumentType instrumentType) {
@@ -97,14 +96,12 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
                     .build();
 
             this.orderBook = OrderBookFactory.create(orderBookOptions);
-
         }
 
         @Override
         public String getSymbol() {
             return orderBook.getSymbol().get();
         }
-
 
         /** Feed order book from algorithm subscription */
         @Override
@@ -138,7 +135,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
         return null;
     }
 
-
     /** Very basic illustration of Full Order Book component API. Refer to QuoteFlow  */
     private void iterateAggregatedBook (OrderBook<OrderBookQuote> aggregatedBook) {
 
@@ -154,7 +150,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
                     .withDecimal64(calculateVWAP(aggregatedBook.getMarketSide(QuoteSide.ASK), FIVE_CONTRACTS));
         }
     }
-
 
     /** Similar sample for per-exchange book API */
     private void inspectExchangeBook (OrderBook<OrderBookQuote> aggregatedBook) {
@@ -187,7 +182,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
         return Decimal64Utils.divide(totalValue, totalSize);
     }
 
-
     /**
      * Return money, which we must have, if we want to buy/sell given volume in order book.
      *
@@ -212,8 +206,6 @@ public class NewOrderBookSampleAlgorithm  extends AbstractAlgorithm<AlgoOrder, N
         result[1] = Decimal64Utils.min(_volume, volume);
         return result;
     }
-
-
 }
 
 

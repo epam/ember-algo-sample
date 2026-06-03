@@ -13,17 +13,8 @@ import deltix.ember.service.algorithm.ChildOrder;
 import deltix.ember.service.algorithm.md.AbstractInstrumentData;
 import deltix.ember.service.algorithm.md.InstrumentDataFactory;
 import deltix.ember.service.oms.cache.OrdersCacheSettings;
-import deltix.orderbook.core.api.Exchange;
-import deltix.orderbook.core.api.MarketSide;
-import deltix.orderbook.core.api.OrderBook;
-import deltix.orderbook.core.api.OrderBookFactory;
-import deltix.orderbook.core.api.OrderBookQuote;
-import deltix.orderbook.core.options.DisconnectMode;
-import deltix.orderbook.core.options.Option;
-import deltix.orderbook.core.options.OrderBookOptions;
-import deltix.orderbook.core.options.OrderBookOptionsBuilder;
-import deltix.orderbook.core.options.OrderBookType;
-import deltix.orderbook.core.options.UpdateMode;
+import deltix.orderbook.core.api.*;
+import deltix.orderbook.core.options.*;
 import deltix.qsrv.hf.pub.InstrumentMessage;
 import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.MarketMessageInfo;
@@ -33,40 +24,13 @@ import rtmath.finanalysis.indicators.SMA;
 import javax.annotation.Nonnull;
 import java.util.concurrent.TimeUnit;
 
+public class SingleExchangeOrderBookSample extends AbstractAlgorithm<AlgoOrder, SingleExchangeOrderBookSample.SampleOrderBook> {
 
-import com.epam.deltix.dfp.Decimal;
-import com.epam.deltix.dfp.Decimal64Utils;
-import deltix.anvil.util.Factory;
-import deltix.anvil.util.annotation.Alphanumeric;
-import deltix.anvil.util.codec.AlphanumericCodec;
-import deltix.ember.message.smd.InstrumentType;
-import deltix.ember.service.algorithm.AbstractAlgorithm;
-import deltix.ember.service.algorithm.AlgoOrder;
-import deltix.ember.service.algorithm.AlgorithmContext;
-import deltix.ember.service.algorithm.ChildOrder;
-import deltix.ember.service.algorithm.md.AbstractInstrumentData;
-import deltix.ember.service.algorithm.md.InstrumentDataFactory;
-import deltix.ember.service.oms.cache.OrdersCacheSettings;
-import deltix.orderbook.core.api.*;
-        import deltix.orderbook.core.options.*;
-        import deltix.qsrv.hf.pub.InstrumentMessage;
-import deltix.timebase.api.messages.DataModelType;
-import deltix.timebase.api.messages.MarketMessageInfo;
-import deltix.timebase.api.messages.QuoteSide;
-import rtmath.finanalysis.indicators.SMA;
+    private static final @Alphanumeric long BINANCE_EXCHANGE_ID = AlphanumericCodec.encode("BINANCE");
+    private static final @Alphanumeric long COINBASE_EXCHANGE_ID = AlphanumericCodec.encode("COINBASE");
 
-import javax.annotation.Nonnull;
-import java.util.concurrent.TimeUnit;
-
-public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder, SingleExchangeOrderBookSample.SampleOrderBook> {
-
-
-    private static final @Decimal long FIVE_CONTRACTS = Decimal64Utils.fromInt(5);
-    private static final @Decimal long HUNDRED = Decimal64Utils.fromLong(100);
     private static final @Decimal long PRICE_DELTA = Decimal64Utils.parse("0.001");
     private static final long SMA_TIME_PERIOD = TimeUnit.MINUTES.toMillis(5);
-
-    private final long [] moneyVolume = new long[2];
 
     private static final OrderBookOptions ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
             .quoteLevels(DataModelType.LEVEL_TWO)
@@ -97,7 +61,6 @@ public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder,
         return SingleExchangeOrderBookSample.SampleOrderBook::new;
     }
 
-
     static final class SampleOrderBook extends AbstractInstrumentData {
 
         private final OrderBook<OrderBookQuote> orderBook;
@@ -119,7 +82,6 @@ public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder,
         public String getSymbol() {
             return orderBook.getSymbol().get();
         }
-
 
         /** Feed order book from algorithm subscription */
         @Override
@@ -153,9 +115,6 @@ public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder,
         return null;
     }
 
-
-
-
     private static @Decimal long calculateVWAP (MarketSide<OrderBookQuote> levels, @Decimal long targetVolume) {
         @Decimal long totalValue = Decimal64Utils.ZERO;
         @Decimal long totalSize = Decimal64Utils.ZERO;
@@ -170,7 +129,6 @@ public class SingleExchangeOrderBookSample  extends AbstractAlgorithm<AlgoOrder,
             return Decimal64Utils.ZERO;
         return Decimal64Utils.divide(totalValue, totalSize);
     }
-
 
     /**
      * Return money, which we must have, if we want to buy/sell given volume in order book.
