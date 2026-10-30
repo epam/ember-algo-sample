@@ -15,12 +15,10 @@ import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
 import deltix.ember.service.algorithm.v2.order.OutboundOrder;
 import com.epam.deltix.gflog.api.Log;
 import deltix.orderbook.core.api.OrderBook;
-import deltix.orderbook.core.api.OrderBookFactory;
 import deltix.orderbook.core.api.OrderBookQuote;
 import deltix.orderbook.core.options.*;
 import deltix.qsrv.hf.pub.InstrumentMessage;
 
-import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.QuoteSide;
 import deltix.timebase.api.messages.universal.BaseEntryInfo;
 import deltix.timebase.api.messages.universal.PackageHeaderInfo;
@@ -55,8 +53,8 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
     private OutboundOrder entryOrder; // Warning: don't forget to release all reference to the orders after they reach final state (orders are recycled to object pool)
     private OutboundOrder exitOrder; // Warning: don't forget to release all reference to the orders after they reach final state (orders are recycled to object pool)
 
-    public ArbitrageHandler(CharSequence symbol, InstrumentType instrumentType, ArbitrageAlgorithm algorithm, Log logger) {
-        super(symbol, instrumentType);
+    public ArbitrageHandler(CharSequence symbol, InstrumentType instrumentType, OrderBookOptions commonOrderBookOptions, ArbitrageAlgorithm algorithm, Log logger) {
+        super(symbol, instrumentType, commonOrderBookOptions);
         this.algorithm = algorithm;
         this.logger = logger;
 
@@ -67,24 +65,6 @@ public class ArbitrageHandler extends AbstractL2TradingAlgorithm.OrderBookState 
         exitExchangeId = settings.getExitExchange();
     }
 
-
-    @Override
-    protected OrderBook<OrderBookQuote> createOrderBook(String symbol) {
-        final OrderBookOptions COMMON_ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
-                .quoteLevels(DataModelType.LEVEL_TWO)
-                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
-                .disconnectMode(DisconnectMode.CLEAR_EXCHANGE)
-                .shouldStoreQuoteTimestamps(true)
-                .build();
-
-        final OrderBookOptions orderBookOptions = new OrderBookOptionsBuilder()
-                .parent(COMMON_ORDER_BOOK_OPTIONS)
-                .orderBookType(OrderBookType.CONSOLIDATED)
-                .symbol(symbol)
-                .build();
-
-        return OrderBookFactory.create(orderBookOptions);
-    }
 
     /** Handles changes on the market */
     @Override

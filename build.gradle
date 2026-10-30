@@ -2,7 +2,7 @@ plugins {
     // Supports functionality similar to Maven BOM.
     // Helps to avoid re-declaring dependency version in each subproject.
     // See https://github.com/spring-gradle-plugins/dependency-management-plugin
-    id "io.spring.dependency-management" version "1.1.5" apply false
+    id "io.spring.dependency-management" version "1.1.7" apply false
 
     id 'idea'
 }
@@ -21,12 +21,12 @@ repositories {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 ext {
-    emberVersion = '1.14.227'
+    emberVersion = '1.15.30'
 }
 
 dependencyManagement {

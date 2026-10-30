@@ -34,7 +34,7 @@ public class ArbitrageAlgorithm extends AbstractL2TradingAlgorithm<ArbitrageHand
     /** Factory that creates per-instrument state objects, ArbitrageHandler in our case */
     @Override
     protected InstrumentDataFactory<ArbitrageHandler> createInstrumentDataFactory() {
-        return (symbol, instrumentType) -> new ArbitrageHandler(symbol, instrumentType, this, context.getLogger());
+        return (symbol, instrumentType) -> new ArbitrageHandler(symbol, instrumentType, commonOrderBookOptions, this, context.getLogger());
     }
 
     /** Factory for our order event processor */

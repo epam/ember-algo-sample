@@ -32,7 +32,7 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
     /** Factory that creates per-instrument state objects, MarketMakerHandler in our case */
     @Override
     protected InstrumentDataFactory<MarketMakerHandler> createInstrumentDataFactory() {
-        return (symbol, instrumentType) -> new MarketMakerHandler(symbol, instrumentType, this, context.getLogger());
+        return (symbol, instrumentType) -> new MarketMakerHandler(symbol, instrumentType, commonOrderBookOptions, this, context.getLogger());
     }
 
     /** Factory for our order event processor */

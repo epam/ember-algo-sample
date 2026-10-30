@@ -15,11 +15,9 @@ import deltix.ember.service.algorithm.util.RoundingTools;
 import deltix.ember.service.algorithm.v2.AbstractL2TradingAlgorithm;
 import deltix.ember.service.algorithm.v2.order.OutboundOrder;
 import deltix.orderbook.core.api.OrderBook;
-import deltix.orderbook.core.api.OrderBookFactory;
 import deltix.orderbook.core.api.OrderBookQuote;
 import deltix.orderbook.core.options.*;
 import deltix.qsrv.hf.pub.InstrumentMessage;
-import deltix.timebase.api.messages.DataModelType;
 import deltix.timebase.api.messages.QuoteSide;
 
 import java.util.ArrayList;
@@ -84,8 +82,8 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
     @Decimal
     private final long positionNormalSize;
 
-    public MarketMakerHandler(CharSequence symbol, InstrumentType instrumentType, MarketMakerAlgorithm algorithm, Log logger) {
-        super(symbol, instrumentType);
+    public MarketMakerHandler(CharSequence symbol, InstrumentType instrumentType, OrderBookOptions commonOrderBookOptions, MarketMakerAlgorithm algorithm, Log logger) {
+        super(symbol, instrumentType, commonOrderBookOptions);
 
         MarketMakerSettings settings = algorithm.getSettings();
         // instrument
@@ -122,24 +120,6 @@ public class MarketMakerHandler extends AbstractL2TradingAlgorithm.OrderBookStat
         isSubscribed = algorithm.isSubscribed(getSymbol());
         toBeCanceled = 0;
         waitingForPositionResponse = false;
-    }
-
-    @Override
-    protected OrderBook<OrderBookQuote> createOrderBook(String symbol) {
-        final OrderBookOptions COMMON_ORDER_BOOK_OPTIONS = new OrderBookOptionsBuilder()
-                .quoteLevels(DataModelType.LEVEL_TWO)
-                .updateMode(UpdateMode.WAITING_FOR_SNAPSHOT)
-                .disconnectMode(DisconnectMode.CLEAR_EXCHANGE)
-                .shouldStoreQuoteTimestamps(true)
-                .build();
-
-        final OrderBookOptions orderBookOptions = new OrderBookOptionsBuilder()
-                .parent(COMMON_ORDER_BOOK_OPTIONS)
-                .orderBookType(OrderBookType.CONSOLIDATED)
-                .symbol(symbol)
-                .build();
-
-        return OrderBookFactory.create(orderBookOptions);
     }
 
     @Override
