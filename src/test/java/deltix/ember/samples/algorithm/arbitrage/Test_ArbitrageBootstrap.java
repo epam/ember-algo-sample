@@ -6,7 +6,7 @@ import deltix.ember.message.trade.OrderType;
 import deltix.ember.message.trade.Side;
 import deltix.ember.message.trade.TimeInForce;
 import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.Collections;

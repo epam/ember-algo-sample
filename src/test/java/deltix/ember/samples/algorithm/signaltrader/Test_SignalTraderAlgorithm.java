@@ -3,7 +3,7 @@ package deltix.ember.samples.algorithm.signaltrader;
 import com.epam.deltix.dfp.Decimal64Utils;
 import deltix.ember.message.trade.OrderType;
 import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class Test_SignalTraderAlgorithm extends SingleLegExecutionAlgoUnitTest<SignalTraderAlgorithm> {
 

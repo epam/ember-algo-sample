@@ -20,14 +20,14 @@ import deltix.timebase.api.messages.MarketMessageInfo;
 import deltix.timebase.api.messages.universal.BaseEntryInfo;
 import deltix.timebase.api.messages.universal.L2EntryNew;
 import deltix.timebase.api.messages.universal.PackageHeader;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import deltix.containers.interfaces.LogProcessor;
 import deltix.containers.interfaces.Severity;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -68,11 +68,11 @@ abstract public class OrderBookProducingAlgorithmTest<A extends AbstractAlgorith
 
 
     protected void verifyNoOutputPrices() {
-        Assert.assertTrue ("Not expecting any output prices at this point", messages.isEmpty());
+        Assertions.assertTrue (messages.isEmpty(), "Not expecting any output prices at this point");
     }
 
     protected void assertOutputPriceMessageCount(int expectedCount) {
-        Assert.assertEquals("Expected number of output price messages", expectedCount, messages.size());
+        Assertions.assertEquals(expectedCount, messages.size(), "Expected number of output price messages");
     }
 
     void trace(PackageHeader message) {
@@ -112,8 +112,8 @@ abstract public class OrderBookProducingAlgorithmTest<A extends AbstractAlgorith
     ///============  book assertions ====================
 
     protected void assertBookEmpty () {
-        assertTrue("There are unexpected offers in the book!", orderBook.getAllAskLevels().isEmpty());
-        assertTrue("There are unexpected bids in the book!", orderBook.getAllBidLevels().isEmpty());
+        assertTrue(orderBook.getAllAskLevels().isEmpty(), "There are unexpected offers in the book!");
+        assertTrue(orderBook.getAllBidLevels().isEmpty(), "There are unexpected bids in the book!");
     }
 
     /**

@@ -79,9 +79,10 @@ dependencies {
     implementation 'org.hdrhistogram:HdrHistogram:2.1.12'
 
     // Unit tests
-    testImplementation group: 'junit', name: 'junit', version: '4.13.1'
-    testImplementation  "org.junit.jupiter:junit-jupiter-api"
-    testImplementation 'org.mockito:mockito-core:2.6.3'
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+    testImplementation 'org.mockito:mockito-core'
     testImplementation "deltix:deltix-ember-message-bus-client"
     testImplementation "deltix:deltix-ember-algo-test:$emberVersion"
     // We need this if we want to Run/Debug algo from this project
@@ -97,7 +98,7 @@ idea {
 }
 
 test {
-    // useJUnitPlatform() // if you're using JUnit 5
+    useJUnitPlatform()
     maxHeapSize = '4G'
     minHeapSize = '4G'
 

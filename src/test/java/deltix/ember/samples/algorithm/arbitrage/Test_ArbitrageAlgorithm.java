@@ -4,7 +4,7 @@ import deltix.anvil.util.codec.AlphanumericCodec;
 import deltix.ember.message.smd.InstrumentType;
 import deltix.ember.message.trade.OrderType;
 import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 

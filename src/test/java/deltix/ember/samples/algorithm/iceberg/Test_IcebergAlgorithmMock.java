@@ -12,7 +12,7 @@ import deltix.ember.service.algorithm.Algorithm;
 import deltix.ember.service.algorithm.MarketSubscription;
 import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
 import deltix.util.collections.generated.ObjectArrayList;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -169,7 +169,7 @@ public class Test_IcebergAlgorithmMock extends SingleLegExecutionAlgoUnitTest<Ic
         verifyNewOrderRequest("orderId:Child#1", "quantity:100");
 
         simulateOrderRejectEvent("Child#1");
-        verifyOrderCancelEvent("orderId:Parent#1", "reason:Unexpected reject of child order");
+        verifyOrderCancelEvent("orderId:Parent#1", "reason:Unexpected reject of child order: JUnit test reject");
     }
 
     /**
@@ -186,7 +186,7 @@ public class Test_IcebergAlgorithmMock extends SingleLegExecutionAlgoUnitTest<Ic
         verifyNewOrderRequest("orderId:Child#2", "quantity:100");
 
         simulateOrderRejectEvent("Child#2");
-        verifyOrderCancelEvent("orderId:Parent#1", "reason:Unexpected reject of child order");
+        verifyOrderCancelEvent("orderId:Parent#1", "reason:Unexpected reject of child order: JUnit test reject");
     }
 
     /**

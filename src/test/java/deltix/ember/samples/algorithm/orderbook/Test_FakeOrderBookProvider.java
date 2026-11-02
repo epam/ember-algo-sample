@@ -8,10 +8,10 @@ import deltix.quoteflow.orderbook.FullOrderBook;
 import deltix.quoteflow.orderbook.interfaces.OrderBookList;
 import deltix.quoteflow.orderbook.interfaces.OrderBookQuote;
 import deltix.timebase.api.messages.QuoteSide;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class Test_FakeOrderBookProvider {
 
