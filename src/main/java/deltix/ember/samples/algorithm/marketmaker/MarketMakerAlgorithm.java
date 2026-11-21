@@ -222,6 +222,6 @@ public class MarketMakerAlgorithm extends AbstractL2TradingAlgorithm<MarketMaker
 
     boolean isSubscribed(String symbol) {
         MarketSubscription subscription = context.getMarketSubscription();
-        return (subscription != null && (subscription.isSubscribedToAll() || subscription.getSymbols().contains(symbol)));
+        return (subscription != null && subscription.isSubscribed(symbol));
     }
 }

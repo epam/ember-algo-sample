@@ -178,6 +178,6 @@ public class ArbitrageAlgorithm extends AbstractL2TradingAlgorithm<ArbitrageHand
 
     boolean isSubscribed(String symbol) {
         MarketSubscription subscription = context.getMarketSubscription();
-        return (subscription != null && (subscription.isSubscribedToAll() || subscription.getSymbols().contains(symbol)));
+        return (subscription != null && subscription.isSubscribed(symbol));
     }
 }

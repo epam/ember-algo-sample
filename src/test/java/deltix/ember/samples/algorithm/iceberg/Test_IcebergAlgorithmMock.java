@@ -14,6 +14,7 @@ import deltix.ember.service.algorithm.SingleLegExecutionAlgoUnitTest;
 import deltix.util.collections.generated.ObjectArrayList;
 import org.junit.jupiter.api.Test;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,8 +40,9 @@ public class Test_IcebergAlgorithmMock extends SingleLegExecutionAlgoUnitTest<Ic
     @Override
     protected MarketSubscription getAlgorithmMarketSubscription() {
         MarketSubscription subscription = mock(MarketSubscription.class);
-        when(subscription.isSubscribedToAll()).thenReturn(true); // we are testing different instruments
-        when(subscription.isSubscribedToAllInstruments()).thenReturn(true); // we are testing different instruments
+        when(subscription.isFilteredSubscription()).thenReturn(false); // we are testing different instruments
+        when(subscription.isSubscribed(any())).thenReturn(true);
+        when(subscription.isTrackingAllInstruments()).thenReturn(true);
         return subscription;
     }
 
